@@ -1,0 +1,31 @@
+Sensor Luz:
+ Publish: - Luminosidade
+ Descrição: De tempos em tempos publica a intensidade da luz (random)
+
+Cortina:
+ Publish: Estado Cortina 
+ Subscribe: - Luminosidade
+            - Controle Cortina
+
+ Descrição: Se a luminosidade está abaixo de um valor abre a cortina,
+publica em Estado Cortina sempre que houver mudança entre aberto e fechado.
+Adicionalmente, abre e fecha de acordo com o tópico Controle Cortina.
+
+LED:
+ Publish:Estado LED
+ Subscribe: - Estado Cortina
+            - Controle LED
+	    - Luminosidade
+ Descrição: Sempre que o LED acender ou apagar publica em Estado LED. Se inscreve
+em Luminosidade e Estado Cortina, se Luminosidade menor que x e Estado Cortina =  Aberta,
+acende o LED. Se inscreve em Controle LED, que envia comandos para acender ou apagar.
+
+
+USER:
+ Publish: - Controle Cortina
+	  - Controle LED
+ Subscribe: - Estado Cortina
+            - Estado LED
+            - Luminosidade
+ Descrição: Pode se inscrever em Luminosidade, Estado LED e Estado Cortina. Pode publicar comandos
+em Controle Cortina e Controle LED para abrir/fechar e acender/apagar.
