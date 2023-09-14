@@ -7,7 +7,6 @@ def on_connect(client, userdata, flags, rc):
     print("Connected with result code "+str(rc))
     #client.subscribe("topic/confirmacao")
     
-
 def on_message(client, userdata, message):
     print("received message: " ,str(message.payload.decode("utf-8")))
 
@@ -15,7 +14,6 @@ filename = "luminosidades.txt"
 
 with open(filename) as file:
     lines = [line.rstrip() for line in file]
-
 
 #Localizacao do MQTT broker , alterar para o endereço do broker
 mqttBroker = "localhost"
@@ -30,7 +28,6 @@ client.on_connect = on_connect
 start = time.time()
 
 #A cada 1min manda uma mensagem com um numero aleatorio e publica
-
 
 pool = cycle(lines)
 
