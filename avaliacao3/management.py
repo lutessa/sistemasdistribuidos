@@ -1,12 +1,23 @@
-# saved as greeting-server.py
 import Pyro5.api
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 
+class User():
+    def __init__(self, name, pub_key, remote_obj):
+        self.name = name
+        self.pub_key = pub_key
+        self.remote_obj = remote_obj
+        
 class Management(object):
     def __init__(self):
         self.estoque = {}
+        self.users = []
     @Pyro5.api.expose
-    def register(self, name, pubKey, proxy):
-        pass
+    def register(self, name, pubKey, uri):
+        user_proxy = Pyro5.api.Proxy(uri)
+        ### if user name pub ! exists
+        self.users.append(User(name,pub_key,user_proxy ))
     def checkKey(self):
         pass
     #TODO: tratar entrada no cliente
@@ -36,6 +47,8 @@ class Management(object):
         if code in self.estoque:
             if qnt > self.estoque[code]["qnt"]:
                 #TODO: eniar flag estoque min p client
+                for user in users:
+                    user.remote_obj.min_stock(self.estoque[code]["name"])
                 return "error"
             self.estoque[code]["qnt"] -= qnt
     def getReport(self):
