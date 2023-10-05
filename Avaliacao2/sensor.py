@@ -33,9 +33,11 @@ pool = cycle(lines)
 
 for luminosidade in pool:
     
-    client.publish("topic/luminosidade", luminosidade)
+    info = client.publish("topic/luminosidade", luminosidade)
     print("Just published " + str(luminosidade) + " to topic luminosidade")
-    time.sleep(60)
+    print("publish connection status code is", info.rc)
+    print("publish message id is", info.mid)
+    time.sleep(30)
 
 # while True:
 #     randNumber = uniform(0.0, 1.0)
