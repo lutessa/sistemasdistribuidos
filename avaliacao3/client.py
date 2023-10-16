@@ -1,11 +1,47 @@
 import Pyro5.api
 import Pyro5.client
-from Crypto.Signature import pkcs1_15
-from Crypto.Hash import SHA256
-from Crypto.PublicKey import RSA
+# from Crypto.Signature import pkcs1_15
+# from Crypto.Hash import SHA256
+# from Crypto.PublicKey import RSA
 import tkinter as tk
 from tkinter import font as tkfont
 import threading 
+
+class Client(object):
+    def __init__(self, manager_uri):
+
+        self.name = "name"
+        self.pub_key = "pubkey"
+        self.manager = Pyro5.api.Proxy(manager_uri)
+        self.daemon = Pyro5.api.Daemon()      # make a Pyro daemon
+        self.uri = self.daemon.register(self)    # register the client as a Pyro object
+        self.client_thread = threading.Thread(target=self.daemon.requestLoop)
+        self.client_thread.start()
+        #self.manager.register(self.name, self.pub_key, self.uri)
+    
+    @Pyro5.api.expose
+    @Pyro5.api.callback
+    def min_stock(self, item):
+        print('item', item, 'is missing')
+
+    @Pyro5.api.expose
+    @Pyro5.api.callback
+    def not_sold_report(self, items):
+        print(items)
+
+    def insert(self, code, name, description, qnt, price, minStorage):
+
+        print(self.manager.insertItem(code, name, description, qnt, price, minStorage))
+
+    def removeItem(self):
+        nameServer = Pyro5.core.locate_ns()
+        management_uri = nameServer.lookup("Management")
+        managementServer = Pyro5.api.Proxy(management_uri)
+        managementServer.removeItem()
+        pass
+
+
+client = Client("PYRONAME:management")
 
 class UIMainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -49,7 +85,7 @@ class InsertPage(tk.Frame):
         priceEntry.grid(row=5, column=1)
         minStorageEntry.grid(row=6, column=1)
         button = tk.Button(self, text="Insere Item",
-                           command=client.insertItem)
+                           command= lambda: client.insert(codeEntry.get(), nameEntry.get(), descriptionEntry.get(), quantityEntry.get(),  priceEntry.get(), minStorageEntry.get()))
         button.grid(row=7, column=1)
         button = tk.Button(self, text="Returna à Página Principal",
                            command=lambda: controller.show_frame("UIMainPage"))
@@ -110,54 +146,17 @@ class graphics(tk.Tk):
         frame = self.frames[page_name]
         frame.tkraise()
 
-class client(object):
-    def __init__(self, manager_uri):
-        self.manager = Pyro5.api.Proxy(manager_uri)
-        daemon = Pyro5.api.Daemon()      # make a Pyro daemon
-        uri = daemon.register(client)    # register the client as a Pyro object
-        client_thread = threading.Thread(target=daemon.requestLoop, args=(1,))
-        client_thread.start()
-        self.manager.register(self.name, self.pub_key, self.uri)
-    
-    @Pyro5.api.expose
-    @Pyro5.api.callback
-    def min_stock(self, item):
-        print('item', item, 'is missing')
 
-    @Pyro5.api.expose
-    @Pyro5.api.callback
-    def not_sold_report(self, items):
-        print(items)
+# def create_pair_key():
+#     private_key = RSA.generate(2048)
+#     public_key = private_key.publickey()
 
-    def insertItem():
-        # nameServer = Pyro5.core.locate_ns()
-        # management_uri = nameServer.lookup("Management")
-        # managementServer = Pyro5.api.Proxy(management_uri)
-        nameServer = Pyro5.api.locate_ns()
-        management_uri = "PYRO:Pyro.NameServer@172.31.60.185:9090"
-        managementProxy = Pyro5.api.Proxy(management_uri)
-        # managementProxy = Pyro5.api.Proxy("PYRONAME:Management")
-        managementProxy.inserItem()
-        pass
-
-    def removeItem(self):
-        nameServer = Pyro5.core.locate_ns()
-        management_uri = nameServer.lookup("Management")
-        managementServer = Pyro5.api.Proxy(management_uri)
-        managementServer.removeItem()
-        pass
-
-
-def create_pair_key():
-    private_key = RSA.generate(2048)
-    public_key = private_key.publickey()
-
-    private_pem = private_key.export_key().decode()
-    public_pem = public_key.export_key().decode()
-    with open('private_pem.pem', 'w') as pr:
-        pr.write(private_pem)
-    with open('public_pem.pem', 'w') as pu:
-        pu.write(public_pem)
+#     private_pem = private_key.export_key().decode()
+#     public_pem = public_key.export_key().decode()
+#     with open('private_pem.pem', 'w') as pr:
+#         pr.write(private_pem)
+#     with open('public_pem.pem', 'w') as pu:
+#         pu.write(public_pem)
 
 
 
