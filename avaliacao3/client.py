@@ -8,6 +8,7 @@ from tkinter import font as tkfont
 import threading 
 from tkcalendar import DateEntry
 from tkcalendar import Calendar
+from datetime import datetime
 
 class Client(object):
     def __init__(self, manager_uri):
@@ -19,7 +20,7 @@ class Client(object):
         self.uri = self.daemon.register(self)    # register the client as a Pyro object
         self.client_thread = threading.Thread(target=self.daemon.requestLoop)
         self.client_thread.start()
-        #self.manager.register(self.name, self.pub_key, self.uri)
+        print(self.manager.register(self.name, self.pub_key, self.uri))
     
     @Pyro5.api.expose
     @Pyro5.api.callback
@@ -42,6 +43,14 @@ class Client(object):
 
     def getStockReport(self):
         return self.manager.getStock()
+    
+    def getNotSoldTime(self, datetime_limit):
+
+        return self.manager.notSoldTime(datetime_limit)
+    
+    def get_flow(self, start_datetime, end_datetime):
+
+        return self.manager.get_flow(start_datetime, end_datetime)
 
 client = Client("PYRONAME:management")
 
@@ -199,10 +208,10 @@ class ReportPage(tk.Frame):
         productsButton.grid(row=6, column=1)
 
 
-        flowproductsButton= tk.Button(self, text="Fluxo por período", command= self.get_flow)
+        flowproductsButton= tk.Button(self, text="Fluxo por período", command= lambda: self.get_flow(self.start_date_calendar.get_date(),self.end_date_calendar.get_date(),self.start_hour_spinbox.get(), self.end_hour_spinbox.get(), self.start_minute_spinbox.get(), self.end_minute_spinbox.get(), self.start_second_spinbox.get(), self.end_second_spinbox.get()))
         flowproductsButton.grid(row=7, column=1)
 
-        notSoldproductsButton= tk.Button(self, text="Produtos sem Saída", command= self.get_not_sold)
+        notSoldproductsButton= tk.Button(self, text="Produtos sem Saída", command= lambda: self.get_not_sold(self.end_date_calendar.get_date(),self.end_hour_spinbox.get(), self.end_minute_spinbox.get(), self.end_second_spinbox.get()))
         notSoldproductsButton.grid(row=8, column=1)
         self.message_label = tk.Label(self, text="", font=("Helvetica", 12))
         self.message_label.grid(row=9, column=1, columnspan=2)   
@@ -214,12 +223,36 @@ class ReportPage(tk.Frame):
         stock = client.getStockReport()
         self.message_label.config(text=stock)
         
-    def get_flow(self):
-        #self.message_label.config(text=result)
-        pass
-    def get_not_sold(self):
-        #self.message_label.config(text=result)
-        pass
+    def get_flow(self, start_date_str, end_date_str, start_hour_str, end_hour_str, start_min_str, end_min_str, start_sec_str, end_sec_str):
+        start_date = datetime.strptime(start_date_str, "%d/%m/%Y")
+        start_hour = int(start_hour_str)
+        start_minute = int(start_min_str)
+        start_second = int(start_sec_str)
+
+        start_datetime_limit = datetime(start_date.year, start_date.month, start_date.day, start_hour, start_minute, start_second)
+
+        end_date = datetime.strptime(end_date_str, "%d/%m/%Y")
+        end_hour = int(end_hour_str)
+        end_minute = int(end_min_str)
+        end_second = int(end_sec_str)
+
+        end_datetime_limit = datetime(end_date.year, end_date.month, end_date.day, end_hour, end_minute, end_second)
+
+
+        result = client.get_flow(start_datetime_limit, end_datetime_limit)
+        self.message_label.config(text=result)
+    
+    def get_not_sold(self, date_str, hour_str, min_str, sec_str):
+        
+        date = datetime.strptime(date_str, "%d/%m/%Y")
+        hour = int(hour_str)
+        minute = int(min_str)
+        second = int(sec_str)
+
+        datetime_limit = datetime(date.year, date.month, date.day, hour, minute, second)
+        result = client.getNotSoldTime(datetime_limit)
+        self.message_label.config(text=result)
+
 
 class graphics(tk.Tk):
     def __init__(self, *args, **kwargs):
