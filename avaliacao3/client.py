@@ -1,8 +1,9 @@
 import Pyro5.api
 import Pyro5.client
-# from Crypto.Signature import pkcs1_15
-# from Crypto.Hash import SHA256
-# from Crypto.PublicKey import RSA
+import Pyro5.errors
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 import tkinter as tk
 from tkinter import font as tkfont
 import threading 
@@ -13,15 +14,32 @@ from datetime import datetime
 class Client(object):
     def __init__(self, manager_uri):
 
-        self.name = "name"
-        self.pub_key = "pubkey"
+        self.name = input()
+        self.pub_key = ""
         self.manager = Pyro5.api.Proxy(manager_uri)
         self.daemon = Pyro5.api.Daemon()      # make a Pyro daemon
         self.uri = self.daemon.register(self)    # register the client as a Pyro object
         self.client_thread = threading.Thread(target=self.daemon.requestLoop)
+        private_key = RSA.generate(2048)
+        public_key = private_key.publickey()
+        self.priv_key = private_key
+        self.pub_key = public_key
         self.client_thread.start()
-        print(self.manager.register(self.name, self.pub_key, self.uri))
+        self.manager.register(self.name, list(self.pub_key.export_key()), self.uri)
     
+    # def create_pair_key(self):
+    #     private_key = RSA.generate(2048)
+    #     public_key = private_key.publickey()
+    #     self.priv_key = private_key
+    #     self.pub_key = public_key
+
+    def register(self):
+        # private_key = RSA.generate(2048)
+        # public_key = private_key.publickey()
+        # self.priv_key = private_key
+        # self.pub_key = public_key
+        print(self.manager.register(self.name, self.pub_key, self.uri))
+
     @Pyro5.api.expose
     @Pyro5.api.callback
     def min_stock(self, item):
@@ -33,13 +51,23 @@ class Client(object):
         print("Relatório de itens não vendidos : ")
         print(items)
 
-    def insert(self, code, name, description, qnt, price, minStorage):
+    def insert(self, code, name, description, qnt, price, minStorage, clienturi, signature):
+        
+        try:
+            self.manager.insertItem(code, name, description, qnt, price, minStorage, clienturi, signature)
+        except Exception:
+            print("Pyro traceback:")
+            print("".join(Pyro5.errors.get_pyro_traceback()))
+        return 
 
-        return self.manager.insertItem(code, name, description, qnt, price, minStorage)
+    def removeItem(self, code, qnt, clienturi, signature):
 
-    def removeItem(self, code, qnt):
-
-        return self.manager.removeItem(code, qnt)
+        try:
+            self.manager.removeItem(code, qnt, clienturi, signature)
+        except Exception:
+            print("Pyro traceback:")
+            print("".join(Pyro5.errors.get_pyro_traceback()))
+        return 
 
     def getStockReport(self):
         return self.manager.getStock()
@@ -51,8 +79,34 @@ class Client(object):
     def get_flow(self, start_datetime, end_datetime):
 
         return self.manager.get_flow(start_datetime, end_datetime)
+    
+    def sign(self):
+        signer = pkcs1_15.new(self.priv_key)
+        hash = SHA256.new(b'signed')
+        # hash.update(message)
+        signature = signer.sign(hash)
+        return list(signature)
 
+print('Please input name')
 client = Client("PYRONAME:management")
+
+# class RegisterPage(tk.Frame):
+#     def __init__(self, parent, controller):
+#         tk.Frame.__init__(self, parent)
+#         self.controller = controller
+#         label = tk.Label(self, text="Página de Registro", font=controller.title_font)
+#         label.grid(row=0, column=0)
+#         nameLabel = tk.Label(self, text="Nome", font=controller.title_font)
+#         nameLabel.grid(row=1, column=0)
+#         nameEntry = tk.Entry(self)
+#         nameEntry.grid(row=2, column=0)
+#         registerButton = tk.Button(self, text="Registro de usuário",
+#                             command=lambda: client.register(nameEntry.get()))
+#         registerButton.grid(row=3, column=0)
+#         self.grid_columnconfigure(0, weight=1)
+
+#     def register_update(name):
+#         pass
 
 class UIMainPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -60,15 +114,18 @@ class UIMainPage(tk.Frame):
         self.controller = controller
         label = tk.Label(self, text="Ações Disponíveis", font=controller.title_font)
         label.grid()
+        # registerButton = tk.Button(self, text="Registro de Usuário",
+        #                     command=lambda: controller.show_frame("RegisterPage"))
         insertButton = tk.Button(self, text="Entrada de Produto",
                             command=lambda: controller.show_frame("InsertPage"))
         removeButton = tk.Button(self, text="Saída de Produto",
                             command=lambda: controller.show_frame("RemovePage"))
         reportButton = tk.Button(self, text="Geração de Relatório",
                             command=lambda: controller.show_frame("ReportPage"))
-        insertButton.grid(row=1, column=0)
-        removeButton.grid(row=2, column=0)
-        reportButton.grid(row=3, column=0)
+        # registerButton.grid(row=1, column=0)                            
+        insertButton.grid(row=2, column=0)
+        removeButton.grid(row=3, column=0)
+        reportButton.grid(row=4, column=0)
         self.grid_columnconfigure(0, weight=1)
 
 class InsertPage(tk.Frame):
@@ -97,13 +154,16 @@ class InsertPage(tk.Frame):
         minStorageEntry.grid(row=6, column=1)
         self.message_label = tk.Label(self, text="", font=("Helvetica", 12))
         self.message_label.grid(row=7, column=1, columnspan=2)   
+        signature = client.sign()
         button = tk.Button(self, text="Insere Item",
-                           command= lambda: self.insert_update(codeEntry.get(), nameEntry.get(), descriptionEntry.get(), quantityEntry.get(),  priceEntry.get(), minStorageEntry.get()))
+                           command= lambda: self.insert_update(codeEntry.get(), nameEntry.get(), descriptionEntry.get(), quantityEntry.get(),  
+                           priceEntry.get(), minStorageEntry.get(), client.uri, signature))
         button.grid(row=8, column=1)
         button = tk.Button(self, text="Returna à Página Principal",
                            command=lambda: controller.show_frame("UIMainPage"))
         button.grid(row=9, column=1)
-    def insert_update(self, code, name, description, quantity,  price, minStorage):
+
+    def insert_update(self, code, name, description, quantity,  price, minStorage, uri, signature):
         if not code.isdigit():
             self.message_label.config(text="Código inválido, digite um número inteiro")
             return
@@ -116,8 +176,12 @@ class InsertPage(tk.Frame):
         if not minStorage.isdigit():
             self.message_label.config(text="Estoque mínimo inválido, digite um número inteiro")
             return               
-        result = client.insert(int(code), name, description, int(quantity),  int(price), int(minStorage))
+        result = client.insert(int(code), name, description, int(quantity),  int(price), int(minStorage), uri, signature)
         self.message_label.config(text=result)
+        # print("client name:",client.name)
+        # print("client uri:",client.uri)
+        # print("client pub_key:",client.pub_key)
+
 class RemovePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -132,21 +196,22 @@ class RemovePage(tk.Frame):
         quantityEntry.grid(row=2, column=1)
         self.message_label = tk.Label(self, text="", font=("Helvetica", 12))
         self.message_label.grid(row=3, column=1, columnspan=2)   
+        signature = client.sign()
         button = tk.Button(self, text="Remove Item",
-                           command=lambda: self.remove_update(codeEntry.get(), quantityEntry.get()))
+                           command=lambda: self.remove_update(codeEntry.get(), quantityEntry.get(), client.uri, signature))
         button.grid(row=4, column=1)
         button = tk.Button(self, text="Returna à Página Principal",
                            command=lambda: controller.show_frame("UIMainPage"))
         button.grid(row=5, column=1)
 
-    def remove_update(self, code, qnt):
+    def remove_update(self, code, qnt, uri, signature):
         if not code.isdigit():
             self.message_label.config(text="Código inválido, digite um número inteiro")
             return
         if not qnt.isdigit():
             self.message_label.config(text="Quantidade inválida, digite um número inteiro")
             return
-        result = client.removeItem(int(code), int(qnt))
+        result = client.removeItem(int(code), int(qnt), uri, signature)
         self.message_label.config(text=result)
     
 class ReportPage(tk.Frame):
@@ -279,20 +344,6 @@ class graphics(tk.Tk):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         frame.tkraise()
-
-
-# def create_pair_key():
-#     private_key = RSA.generate(2048)
-#     public_key = private_key.publickey()
-
-#     private_pem = private_key.export_key().decode()
-#     public_pem = public_key.export_key().decode()
-#     with open('private_pem.pem', 'w') as pr:
-#         pr.write(private_pem)
-#     with open('public_pem.pem', 'w') as pu:
-#         pu.write(public_pem)
-
-
 
 UI = graphics()
 UI.mainloop()

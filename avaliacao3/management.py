@@ -4,9 +4,9 @@ import Pyro5.api
 import Pyro5.socketutil
 import time
 from datetime import datetime, timedelta
-# from Crypto.Signature import pkcs1_15
-# from Crypto.Hash import SHA256
-# from Crypto.PublicKey import RSA
+from Crypto.Signature import pkcs1_15
+from Crypto.Hash import SHA256
+from Crypto.PublicKey import RSA
 
 # class NameServer(object):
 #     def __init__(self):
@@ -67,17 +67,47 @@ class Management(object):
         
         return "Registration Completed"
         
-        
-    
     #TODO: implementar
-    def checkKey(self):
-        return True
+    def checkKey(self, public_key, signature):
+        # hash.update(signature)
+        key = RSA.import_key(bytes(public_key))
+        print("pub_key:",key)
+        try:
+            # verifier = pkcs1_15.new(RSA.import_key(bytes(public_key)))
+            # hash = SHA256.new(b'signed')
+            # verifier.verify(hash, bytes(signature))
+            pkcs1_15.new(RSA.import_key(bytes(public_key))).verify(SHA256.new(b'signed'), bytes(signature))
+            print('Signature is valid.')
+            return 1
+        except:
+            print('Signature is invalid.')
+            return 0
 
     #TODO: DATA E HORA
     @Pyro5.api.expose
-    def insertItem(self, code, name, description, qnt, price, minStorage):
-        if not self.checkKey():
-            return "ERROR: Credenciais inválidas"
+    def insertItem(self, code, name, description, qnt, price, minStorage, uri, signature):
+        actual_user = None
+        for user in self.users:
+            if user.remote_obj == uri:
+                actual_user = user
+                # print("server name:", actual_user.name)
+                # print("server uri:", actual_user.remote_obj)
+                # print("server pub_key:", actual_user.pub_key)
+        if actual_user == None:
+            print('Not a valid user')
+            return -1
+            
+        # self.checkKey(actual_user.pub_key, signature)
+            # return "ERROR: Credenciais inválidas"
+        try:
+            # verifier = pkcs1_15.new(RSA.import_key(bytes(public_key)))
+            # hash = SHA256.new(b'signed')
+            # verifier.verify(hash, bytes(signature))
+            pkcs1_15.new(RSA.import_key(bytes(actual_user.pub_key))).verify(SHA256.new(b'signed'), bytes(signature))
+            print('Signature is valid.')
+        except:
+            print('Signature is invalid.')
+            return 0
 
         current_time = datetime.now()
 
@@ -103,16 +133,24 @@ class Management(object):
                             "last_insert_time": current_time,
                             "last_remove_time": datetime.fromtimestamp(0)
                         }
-
-
                 return "Novo objeto adicionado com sucesso"
-
 
     #TODO: DATA E HORA
     @Pyro5.api.expose
-    def removeItem(self, code, qnt):
-        if not self.checkKey():
-            return "ERROR"
+    def removeItem(self, code, qnt, uri, signature):
+        actual_user = None
+        for user in self.users:
+            if user.remote_obj == uri:
+                actual_user = user                
+        try:
+            # verifier = pkcs1_15.new(RSA.import_key(bytes(public_key)))
+            # hash = SHA256.new(b'signed')
+            # verifier.verify(hash, bytes(signature))
+            pkcs1_15.new(RSA.import_key(bytes(actual_user.pub_key))).verify(SHA256.new(b'signed'), bytes(signature))
+            print('Signature is valid.')
+        except:
+            print('Signature is invalid.')
+            return 0
         
         current_time = datetime.now()
         with self.estoque_lock:
@@ -173,8 +211,8 @@ class Management(object):
 
                 if (((last_remove_time > start_datetime) and (last_remove_time < end_datetime)) or ((last_insert_time > start_datetime) and (last_insert_time < end_datetime))):
                     items.append(self.estoque[code])
-
         return items
+
     #TODO: implementar propriamente
     def generateReport(self):
         with self.estoque_lock:
@@ -203,6 +241,7 @@ class Management(object):
                             notSold.append(code)
             print(notSold)
             return notSold
+
     def sendReport(self):
         while True:
             print("sending reports")
