@@ -6,6 +6,8 @@ import Pyro5.client
 import tkinter as tk
 from tkinter import font as tkfont
 import threading 
+from tkcalendar import DateEntry
+from tkcalendar import Calendar
 
 class Client(object):
     def __init__(self, manager_uri):
@@ -22,24 +24,24 @@ class Client(object):
     @Pyro5.api.expose
     @Pyro5.api.callback
     def min_stock(self, item):
-        print('item', item, 'is missing')
+        print('item', item, 'atingiu estoque mínimo')
 
     @Pyro5.api.expose
     @Pyro5.api.callback
     def not_sold_report(self, items):
+        print("Relatório de itens não vendidos : ")
         print(items)
 
     def insert(self, code, name, description, qnt, price, minStorage):
 
-        print(self.manager.insertItem(code, name, description, qnt, price, minStorage))
+        return self.manager.insertItem(code, name, description, qnt, price, minStorage)
 
-    def removeItem(self):
-        nameServer = Pyro5.core.locate_ns()
-        management_uri = nameServer.lookup("Management")
-        managementServer = Pyro5.api.Proxy(management_uri)
-        managementServer.removeItem()
-        pass
+    def removeItem(self, code, qnt):
 
+        return self.manager.removeItem(code, qnt)
+
+    def getStockReport(self):
+        return self.manager.getStock()
 
 client = Client("PYRONAME:management")
 
@@ -84,13 +86,29 @@ class InsertPage(tk.Frame):
         quantityEntry.grid(row=4, column=1)
         priceEntry.grid(row=5, column=1)
         minStorageEntry.grid(row=6, column=1)
+        self.message_label = tk.Label(self, text="", font=("Helvetica", 12))
+        self.message_label.grid(row=7, column=1, columnspan=2)   
         button = tk.Button(self, text="Insere Item",
-                           command= lambda: client.insert(codeEntry.get(), nameEntry.get(), descriptionEntry.get(), quantityEntry.get(),  priceEntry.get(), minStorageEntry.get()))
-        button.grid(row=7, column=1)
+                           command= lambda: self.insert_update(codeEntry.get(), nameEntry.get(), descriptionEntry.get(), quantityEntry.get(),  priceEntry.get(), minStorageEntry.get()))
+        button.grid(row=8, column=1)
         button = tk.Button(self, text="Returna à Página Principal",
                            command=lambda: controller.show_frame("UIMainPage"))
-        button.grid(row=8, column=1)
-
+        button.grid(row=9, column=1)
+    def insert_update(self, code, name, description, quantity,  price, minStorage):
+        if not code.isdigit():
+            self.message_label.config(text="Código inválido, digite um número inteiro")
+            return
+        if not quantity.isdigit():
+            self.message_label.config(text="Quantidade inválida, digite um número inteiro")
+            return
+        if not price.isdigit():
+            self.message_label.config(text="Preço inválido, digite um número inteiro")
+            return
+        if not minStorage.isdigit():
+            self.message_label.config(text="Estoque mínimo inválido, digite um número inteiro")
+            return               
+        result = client.insert(int(code), name, description, int(quantity),  int(price), int(minStorage))
+        self.message_label.config(text=result)
 class RemovePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -103,12 +121,24 @@ class RemovePage(tk.Frame):
         tk.Label(self, text="Quantidade").grid(row=2, column=0)
         quantityEntry = tk.Entry(self)
         quantityEntry.grid(row=2, column=1)
+        self.message_label = tk.Label(self, text="", font=("Helvetica", 12))
+        self.message_label.grid(row=3, column=1, columnspan=2)   
         button = tk.Button(self, text="Remove Item",
-                           command=client.removeItem)
-        button.grid(row=3, column=1)
+                           command=lambda: self.remove_update(codeEntry.get(), quantityEntry.get()))
+        button.grid(row=4, column=1)
         button = tk.Button(self, text="Returna à Página Principal",
                            command=lambda: controller.show_frame("UIMainPage"))
-        button.grid(row=4, column=1)
+        button.grid(row=5, column=1)
+
+    def remove_update(self, code, qnt):
+        if not code.isdigit():
+            self.message_label.config(text="Código inválido, digite um número inteiro")
+            return
+        if not qnt.isdigit():
+            self.message_label.config(text="Quantidade inválida, digite um número inteiro")
+            return
+        result = client.removeItem(int(code), int(qnt))
+        self.message_label.config(text=result)
     
 class ReportPage(tk.Frame):
     def __init__(self, parent, controller):
@@ -116,9 +146,80 @@ class ReportPage(tk.Frame):
         self.controller = controller
         label = tk.Label(self, text="Página de Geração de Relatório", font=controller.title_font)
         label.grid(row = 0, column=1)
+
+
+        start_label = tk.Label(self, text="Inicial:")
+        start_label.grid(row=1, column=1)
+
+        end_label = tk.Label(self, text="Final:")
+        end_label.grid(row=1, column=2)
+
+        # Campo de seleção de data com tkcalendar
+        date_label = tk.Label(self, text="Data:")
+        date_label.grid(row=2, column=0)
+
+            # Campo de seleção de hora
+        hour_label = tk.Label(self, text="Hora:")
+        hour_label.grid(row=3, column=0)
+
+    # Campo de seleção de hora
+        min_label = tk.Label(self, text="Min:")
+        min_label.grid(row=4, column=0)
+
+    # Campo de seleção de hora
+        sec_label = tk.Label(self, text="Sec:")
+        sec_label.grid(row=5, column=0)
+
+        self.start_date_calendar = Calendar(self)
+        self.start_date_calendar.grid(row=2, column=1)
+
+
+        self.end_date_calendar = Calendar(self)
+        self.end_date_calendar.grid(row=2, column=2)
+
+        self.start_hour_spinbox = tk.Spinbox(self, from_=0, to=23)
+        self.start_minute_spinbox = tk.Spinbox(self, from_=0, to=59)
+        self.start_second_spinbox = tk.Spinbox(self, from_=0, to=59)
+        self.start_hour_spinbox.grid(row=3, column=1)
+        self.start_minute_spinbox.grid(row=4, column=1)
+        self.start_second_spinbox.grid(row=5, column=1)
+
+
+        self.end_hour_spinbox = tk.Spinbox(self, from_=0, to=23)
+        self.end_minute_spinbox = tk.Spinbox(self, from_=0, to=59)
+        self.end_second_spinbox = tk.Spinbox(self, from_=0, to=59)
+        self.end_hour_spinbox.grid(row=3, column=2)
+        self.end_minute_spinbox.grid(row=4, column=2)
+        self.end_second_spinbox.grid(row=5, column=2)
+
+
+ 
+
+        productsButton= tk.Button(self, text="Produtos em Estoque", command= self.get_stock)
+        productsButton.grid(row=6, column=1)
+
+
+        flowproductsButton= tk.Button(self, text="Fluxo por período", command= self.get_flow)
+        flowproductsButton.grid(row=7, column=1)
+
+        notSoldproductsButton= tk.Button(self, text="Produtos sem Saída", command= self.get_not_sold)
+        notSoldproductsButton.grid(row=8, column=1)
+        self.message_label = tk.Label(self, text="", font=("Helvetica", 12))
+        self.message_label.grid(row=9, column=1, columnspan=2)   
         button = tk.Button(self, text="Returna à Página Principal",
                            command=lambda: controller.show_frame("UIMainPage"))
-        button.grid(row=3, column=1)
+        button.grid(row=10, column=1)
+    def get_stock(self):
+
+        stock = client.getStockReport()
+        self.message_label.config(text=stock)
+        
+    def get_flow(self):
+        #self.message_label.config(text=result)
+        pass
+    def get_not_sold(self):
+        #self.message_label.config(text=result)
+        pass
 
 class graphics(tk.Tk):
     def __init__(self, *args, **kwargs):

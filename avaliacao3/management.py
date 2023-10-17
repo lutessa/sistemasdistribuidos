@@ -2,6 +2,8 @@ import threading
 import socket
 import Pyro5.api
 import Pyro5.socketutil
+import time
+from datetime import datetime, timedelta
 # from Crypto.Signature import pkcs1_15
 # from Crypto.Hash import SHA256
 # from Crypto.PublicKey import RSA
@@ -34,6 +36,9 @@ class Management(object):
         self.estoque = {}
         self.users = []
 
+        self.report_thread = threading.Thread(target=self.sendReport)
+        self.report_thread.daemon = True
+        self.report_thread.start()
     @Pyro5.api.expose
     def register(self, name, pub_key, uri):
         user_proxy = Pyro5.api.Proxy(uri)
@@ -48,12 +53,16 @@ class Management(object):
     #TODO: implementar
     def checkKey(self):
         return True
-    #TODO: tratar entrada no cliente
+
+    #TODO: DATA E HORA
     @Pyro5.api.expose
     def insertItem(self, code, name, description, qnt, price, minStorage):
         if not self.checkKey():
-            return "ERROR"
+            return "ERROR: Credenciais inválidas"
 
+        current_time = datetime.now()
+
+        print(self.estoque)
         if code in self.estoque:
             print('1')
             self.estoque[code]["name"] = name
@@ -61,6 +70,9 @@ class Management(object):
             self.estoque[code]["price"] = price
             self.estoque[code]["minStorage"] = minStorage
             self.estoque[code]["qnt"] += qnt
+            self.estoque[code]["last_insert_time"] = current_time
+
+            return "Objeto inserido com sucesso"
         else:
             print('2')
             self.estoque[code] = {
@@ -68,17 +80,23 @@ class Management(object):
                         "description": description,
                         "price": price,
                         "minStorage": minStorage,
-                        "qnt": qnt
+                        "qnt": qnt,
+                        "last_insert_time": current_time,
+                        "last_remove_time": 0
                     }
 
 
-        return "Success"
+            return "Novo objeto adicionado com sucesso"
 
+
+    #TODO: DATA E HORA
     @Pyro5.api.expose
     def removeItem(self, code, qnt):
         if not self.checkKey():
             return "ERROR"
         
+        current_time = datetime.now()
+
         if code in self.estoque:
             #if amount to remove is bigger than existing
             if qnt > self.estoque[code]["qnt"]:
@@ -90,14 +108,29 @@ class Management(object):
                     user.remote_obj.min_stock(self.estoque[code]["name"])
                 #return "1: "
             self.estoque[code]["qnt"] -= qnt
-
+            self.estoque[code]["last_remove_time"] = current_time
             return "0: Operação concluída"
         else:
             print('O item requerido não está disponível')
             return 'ERROR: O item requerido não está disponível'
-    def getReport(self):
-        threading.Timer(10, self.getReport).start()
-        
+    
+    @Pyro5.api.expose
+    def getStock(self):
+        return self.estoque
+    #TODO: implementar propriamente
+    def generateReport(self):
+        notSold = []
+        current_time = datetime.now()
+        for code in self.estoque:
+            if (current_time - self.estoque[code]["last_remove_time"]) > timedelta(minutes=2):
+                notSold.append(code)
+        return "report"
+    def sendReport(self):
+        while True:
+            report = self.generateReport()
+            for user in self.users:
+                user.remote_obj.not_sold_report(report)
+            time.sleep(60)  
 
 if __name__ == "__main__":
 
