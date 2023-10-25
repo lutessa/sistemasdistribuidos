@@ -54,7 +54,7 @@ class Client(object):
     def insert(self, code, name, description, qnt, price, minStorage, clienturi, signature):
         
         try:
-            self.manager.insertItem(code, name, description, qnt, price, minStorage, clienturi, signature)
+            return self.manager.insertItem(code, name, description, qnt, price, minStorage, clienturi, signature)
         except Exception:
             print("Pyro traceback:")
             print("".join(Pyro5.errors.get_pyro_traceback()))
@@ -63,7 +63,7 @@ class Client(object):
     def removeItem(self, code, qnt, clienturi, signature):
 
         try:
-            self.manager.removeItem(code, qnt, clienturi, signature)
+            return self.manager.removeItem(code, qnt, clienturi, signature)
         except Exception:
             print("Pyro traceback:")
             print("".join(Pyro5.errors.get_pyro_traceback()))
@@ -266,14 +266,13 @@ class ReportPage(tk.Frame):
         self.end_minute_spinbox.grid(row=4, column=2)
         self.end_second_spinbox.grid(row=5, column=2)
 
-
- 
-
         productsButton= tk.Button(self, text="Produtos em Estoque", command= self.get_stock)
         productsButton.grid(row=6, column=1)
 
 
-        flowproductsButton= tk.Button(self, text="Fluxo por período", command= lambda: self.get_flow(self.start_date_calendar.get_date(),self.end_date_calendar.get_date(),self.start_hour_spinbox.get(), self.end_hour_spinbox.get(), self.start_minute_spinbox.get(), self.end_minute_spinbox.get(), self.start_second_spinbox.get(), self.end_second_spinbox.get()))
+        flowproductsButton= tk.Button(self, text="Fluxo por período", command= lambda: self.get_flow(self.start_date_calendar.get_date(),
+        self.end_date_calendar.get_date(),self.start_hour_spinbox.get(), self.end_hour_spinbox.get(), 
+        self.start_minute_spinbox.get(), self.end_minute_spinbox.get(), self.start_second_spinbox.get(), self.end_second_spinbox.get()))
         flowproductsButton.grid(row=7, column=1)
 
         notSoldproductsButton= tk.Button(self, text="Produtos sem Saída", command= lambda: self.get_not_sold(self.end_date_calendar.get_date(),self.end_hour_spinbox.get(), self.end_minute_spinbox.get(), self.end_second_spinbox.get()))
@@ -289,14 +288,14 @@ class ReportPage(tk.Frame):
         self.message_label.config(text=stock)
         
     def get_flow(self, start_date_str, end_date_str, start_hour_str, end_hour_str, start_min_str, end_min_str, start_sec_str, end_sec_str):
-        start_date = datetime.strptime(start_date_str, "%d/%m/%Y")
+        start_date = datetime.strptime(start_date_str, "%m/%d/%y")
         start_hour = int(start_hour_str)
         start_minute = int(start_min_str)
         start_second = int(start_sec_str)
 
         start_datetime_limit = datetime(start_date.year, start_date.month, start_date.day, start_hour, start_minute, start_second)
 
-        end_date = datetime.strptime(end_date_str, "%d/%m/%Y")
+        end_date = datetime.strptime(end_date_str, "%m/%d/%y")
         end_hour = int(end_hour_str)
         end_minute = int(end_min_str)
         end_second = int(end_sec_str)
@@ -308,15 +307,18 @@ class ReportPage(tk.Frame):
         self.message_label.config(text=result)
     
     def get_not_sold(self, date_str, hour_str, min_str, sec_str):
-        
-        date = datetime.strptime(date_str, "%d/%m/%Y")
-        hour = int(hour_str)
-        minute = int(min_str)
-        second = int(sec_str)
+        try:
+            date = datetime.strptime(date_str, "%m/%d/%y")
+            hour = int(hour_str)
+            minute = int(min_str)
+            second = int(sec_str)
 
-        datetime_limit = datetime(date.year, date.month, date.day, hour, minute, second)
-        result = client.getNotSoldTime(datetime_limit)
-        self.message_label.config(text=result)
+            datetime_limit = datetime(date.year, date.month, date.day, hour, minute, second)
+            result = client.getNotSoldTime(datetime_limit)
+            self.message_label.config(text=result)
+        except Exception:
+            print("Pyro traceback:")
+            print("".join(Pyro5.errors.get_pyro_traceback()))
 
 
 class graphics(tk.Tk):

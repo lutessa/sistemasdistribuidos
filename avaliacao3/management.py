@@ -59,9 +59,9 @@ class Management(object):
     def register(self, name, pub_key, uri):
         #user_proxy = Pyro5.api.Proxy(uri)
         ### if user name pub ! exists
-        for user in self.users:
-            if(User.name == user.name and User.pub_key == user.pub_key and User.user_proxy == user.user_proxy):
-                return "User already registered"
+        # for user in self.users:
+        #     if(User.name == use.name and User.pub_key == user.pub_key and User.user_proxy == user.user_proxy):
+        #         return "User already registered"
 
         self.users.append(User(name,pub_key,uri))
         
@@ -168,6 +168,7 @@ class Management(object):
                         user_proxy = Pyro5.api.Proxy(user.remote_obj) 
                         user_proxy.min_stock(self.estoque[code]["name"])
                     #return "1: "
+                    
                 self.estoque[code]["qnt"] -= qnt
                 self.estoque[code]["last_remove_time"] = current_time
                 return "0: Operação concluída"
@@ -183,9 +184,13 @@ class Management(object):
     @Pyro5.api.expose
     def notSoldTime(self, datetime_limit):
         items = []
+        print('datetime_limit:',datetime_limit)
         with self.estoque_lock:
+            datetime_limit = datetime.strptime(datetime_limit,'%Y-%m-%dT%H:%M:%S')
             for code in self.estoque:
                 last_remove_time = self.estoque[code]["last_remove_time"]
+                print('last_remove_time:',last_remove_time)
+                # last_remove_time = datetime.strptime(self.estoque[code]["last_remove_time"],'%Y-%m-%dT%H:%M:%S')
                 if (last_remove_time == 0) or (last_remove_time < datetime_limit):
                     items.append(self.estoque[code])
         return items
