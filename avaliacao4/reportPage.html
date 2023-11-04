@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geração de Relatórios</title>
+</head>
+<body>
+    <h1>Geração de Relatórios</h1>
+    <form>
+        <table>
+            <tr>
+                <td>
+                    <label for="periodoInicial">Início:</label>
+                </td>
+                <td>
+                    <input type="date" id="periodoInicial" name="periodoInicial">
+                    <input type="time" id="horaInicial" name="horaInicial">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <label for="periodoFinal">Término:</label>
+                </td>
+                <td>
+                    <input type="date" id="periodoFinal" name="periodoFinal">
+                    <input type="time" id="horaFinal" name="horaFinal">
+                </td>
+            </tr>
+        </table>
+        <input type="submit" value="Enviar">
+    </form>
+
+    <button id="Pagina Inicial" onclick="paginaInicial()">Voltar</button>
+
+
+    <h1>Eventos Recebidos</h1>
+    <div id="eventosRecebidos"></div>
+
+    <script>
+        function paginaInicial() {
+            window.location.href = 'mainPage.html';
+        }
+
+        var eventosRecebidos = document.getElementById("eventosRecebidos");
+        var source = new EventSource("http://localhost:5000/events");
+            source.addEventListener('dataUpdate', function(event) {
+            
+            //source.addEventListener('publish', function(event) {
+                
+                console.log("EVENT");
+                // var data = event.data
+                // console.log(data)
+                var data = JSON.parse(event.data);
+                var mensagem = "O servidor diz: " + data.message;
+
+                // Exibir a mensagem na div "eventosRecebidos"
+                eventosRecebidos.innerHTML += "<p>" + data + "</p>";
+                console.log(mensagem)
+                
+            }, false);
+
+            source.addEventListener('error', function(event) {
+                console.log("Erro: " + event);
+                alert("Falha ao conectar ao fluxo de eventos. Verifique a configuração do servidor SSE.");
+            }, false);
+    </script>
+
+</body>
+</html>

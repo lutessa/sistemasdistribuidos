@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ações Disponíveis</title>
+</head>
+<body>
+    <h1>Ações Disponíveis:</h1>
+    <button id="Entrada de Produto" onclick="paginaDeEntrada()">Entrada de Produto</button>
+    <button id="Saída de Produto" onclick="paginaDeSaida()">Saída de Produto</button>
+    <button id="Geração de Relatório" onclick="paginaDeRelatorio()">Geração de Relatório</button>
+
+    <h1>Eventos Recebidos</h1>
+    <div id="eventosRecebidos"></div>
+
+    <script>
+        function paginaDeEntrada() {
+            window.location.href = 'insertPage.html';
+            console.log("EVENT");
+        }
+
+        function paginaDeSaida() {
+            window.location.href = 'removePage.html';
+        }
+
+        function paginaDeRelatorio() {
+            window.location.href = 'reportPage.html';
+        }
+
+        var eventosRecebidos = document.getElementById("eventosRecebidos");
+        var source = new EventSource("http://localhost:5000/events");
+            source.addEventListener('dataUpdate', function(event) {
+            
+            //source.addEventListener('publish', function(event) {
+                
+                console.log("EVENT");
+                // var data = event.data
+                // console.log(data)
+                var data = JSON.parse(event.data);
+
+                // Exibir a mensagem na div "eventosRecebidos"
+                eventosRecebidos.innerHTML += "<p>" + data[0] + "</p>";
+
+                
+            }, false);
+
+            source.addEventListener('error', function(event) {
+                console.log("EVENT");
+                console.log("Erro: " + event);
+                alert("Falha ao conectar ao fluxo de eventos. Verifique a configuração do servidor SSE.");
+            }, false);
+    </script>
+</body>
+</html>

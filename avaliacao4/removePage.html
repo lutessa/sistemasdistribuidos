@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Página de Retirada de Produtos</title>
+</head>
+<body>
+    <h1>Saída de Produtos:</h1>
+    <form id="formulario">
+        <label for="codigo">Código:</label>
+        <input type="text" id="campo1" name="campo1"><br>
+
+        <label for="quantidade">Quantidade:</label>
+        <input type="text" id="campo4" name="campo4"><br>
+
+   <button type="button" onclick="enviarDados()">Enviar</button>
+    </form>
+    <button id="Pagina Inicial" onclick="paginaInicial()">Voltar</button>
+
+
+    <h1>Eventos Recebidos</h1>
+    <div id="eventosRecebidos"></div>
+
+    <script>
+        function enviarDados() {
+            // Aqui você pode acessar os valores dos campos de entrada
+            var valorCampo1 = document.getElementById("campo1").value;
+            var valorCampo4 = document.getElementById("campo4").value;
+
+
+            // Faça o que desejar com os valores, como enviar para o servidor ou processá-los localmente
+            // Por exemplo, exibindo os valores em um alert:
+            alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 2: " + valorCampo2 + "\nCampo 3: " + valorCampo3 + "\nCampo 4: " + valorCampo4 + "\nCampo 5: " + valorCampo5 + "\nCampo 6: " + valorCampo6);
+        }
+        function paginaInicial() {
+            window.location.href = 'mainPage.html';
+        }
+        var eventosRecebidos = document.getElementById("eventosRecebidos");
+        var source = new EventSource("http://localhost:5000/events");
+            source.addEventListener('dataUpdate', function(event) {
+            
+            //source.addEventListener('publish', function(event) {
+                
+                console.log("EVENT");
+                // var data = event.data
+                // console.log(data)
+                var data = JSON.parse(event.data);
+                var mensagem = "O servidor diz: " + data.message;
+
+                // Exibir a mensagem na div "eventosRecebidos"
+                eventosRecebidos.innerHTML += "<p>" + mensagem + "</p>";
+                console.log(mensagem)
+                
+            }, false);
+
+            source.addEventListener('error', function(event) {
+                console.log("EVENT");
+                console.log("Erro: " + event);
+                alert("Falha ao conectar ao fluxo de eventos. Verifique a configuração do servidor SSE.");
+            }, false);
+    </script>
+</body>
+</html>
