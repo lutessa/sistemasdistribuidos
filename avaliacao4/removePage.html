@@ -29,8 +29,30 @@
 
             // Faça o que desejar com os valores, como enviar para o servidor ou processá-los localmente
             // Por exemplo, exibindo os valores em um alert:
-            alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 2: " + valorCampo2 + "\nCampo 3: " + valorCampo3 + "\nCampo 4: " + valorCampo4 + "\nCampo 5: " + valorCampo5 + "\nCampo 6: " + valorCampo6);
-        }
+            alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 4: " + valorCampo4);
+
+            item_data = [
+                {"code":valorCampo1, "qnt":valorCampo4}
+            ]
+
+            fetch("http://localhost:5000/remove",
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(item_data)}).then(res=>{
+                        if(res.ok){
+                            return res.json()
+                        }else{
+                            alert("data format is incorrect")
+                        }
+                    }).then(jsonResponse=>{
+                        console.log(jsonResponse)
+                    }).catch((err)=>console.error(err));
+                }
+        
         function paginaInicial() {
             window.location.href = 'mainPage.html';
         }
