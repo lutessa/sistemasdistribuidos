@@ -6,6 +6,7 @@ from flask_cors import CORS
 import datetime
 from helper import get_data,get_schd_time
 from datetime import datetime
+import json
 estoque = {}
 app = Flask(__name__)
 CORS(app)
@@ -23,9 +24,10 @@ log.addHandler(h)
 def server_side_event():
     """ Function to publish server side event """
     with app.app_context():
-        #sse.publish("ameba", type='randomtype')
         sse.publish(get_data(), type='dataUpdate')
         print("Event Scheduled at ",datetime.datetime.now())
+
+
 
 
 # sched = BackgroundScheduler(daemon=True)
@@ -35,25 +37,25 @@ def server_side_event():
 @app.route('/insert', methods=["POST"])
 def insert_item():
     data = request.get_json()
+    # data = json.loads(data)
     
     current_time = datetime.now()
 
-    code = data['code']
-    name = data["name"]
-    description = data["description"]
-    price = data["price"]
-    minStorage = data['minStorage']
-    qnt = data['qnt']
-
+    code = data[0]['code']
+    name = data[0]["name"]
+    description = data[0]["description"]
+    price = data[0]["price"]
+    minStorage = data[0]['minStorage']
+    qnt = int(data[0]['qnt'])
 
     if code in estoque:
         estoque[code]["name"] = name
         estoque[code]["description"] = description
         estoque[code]["price"] = price
         estoque[code]["minStorage"] = minStorage
-        estoque[code]["qnt"] += qnt
+        estoque[code]["qnt"] += int(qnt)
         estoque[code]["last_insert_time"] = current_time
-
+        print(estoque[code]['qnt'])
         return "Objeto inserido com sucesso"
     else:
         estoque[code] = {
@@ -65,6 +67,7 @@ def insert_item():
                             "last_insert_time": current_time,
                             "last_remove_time": datetime.fromtimestamp(0)
                         }
+        print("Novo objeto adicionado com sucesso")
         return "Novo objeto adicionado com sucesso"
 
     #return "OK"
@@ -75,26 +78,28 @@ def remove_item():
 
     current_time = datetime.now()
 
-    code = data['code']
-    qnt = data['qnt']
+    code = data[0]['code']
+    qnt = int(data[0]['qnt'])
 
     if code in estoque:
         #if amount to remove is bigger than existing
-        if qnt > estoque[code]["qnt"]:
+        if (qnt > estoque[code]["qnt"]):
             print('O estoque é insuficiente para ser retirada a quantidade pedida')
             return "ERROR: O estoque é insuficiente para ser retirada a quantidade pedida"
-        if estoque[code]["qnt"]-qnt < estoque[code]["minStorage"]:
+        if (estoque[code]["qnt"])-qnt < int(estoque[code]["minStorage"]):
             print("sending flag")
             sse.publish(f"Estoque minimo de {estoque[code]['name']} atingido", type='dataUpdate')
             estoque[code]["last_remove_time"] = current_time
-            return "1: Operação concluída, objeto no limite"
-        else:
-            print('O item requerido não está disponível')
-            return 'ERROR: O item requerido não está disponível'
+            # return "1: Operação concluída, objeto no limite"
+        
+        estoque[code]['qnt'] -= qnt
+        return "0: Operação concluída"
+    else:
+        print('O item requerido não está disponível')
+        return 'ERROR: O item requerido não está disponível'
     
 
     #return "OK"
-
 
 
 if __name__ == '__main__':

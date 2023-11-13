@@ -88,6 +88,9 @@
                 var data = JSON.parse(event.data);
                 var mensagem = "O servidor diz: " + data.message;
 
+                let i = 0
+                while(i < data.length)
+                    eventosRecebidos.innerHTML += "<p>" + data[i] + "</p>";
                 // Exibir a mensagem na div "eventosRecebidos"
                 eventosRecebidos.innerHTML += "<p>" + data + "</p>";
                 console.log(mensagem)
