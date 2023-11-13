@@ -3,9 +3,9 @@ from flask_sse import sse
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_cors import CORS
-import datetime
+#import datetime
 from helper import get_data,get_schd_time
-from datetime import datetime
+from datetime import datetime, timedelta
 estoque = {}
 app = Flask(__name__)
 CORS(app)
@@ -20,12 +20,39 @@ h = logging.StreamHandler()
 h.setFormatter(fmt)
 log.addHandler(h)
 
+def notSoldReport():
+    notSold = []
+    current_time = datetime.now()
+    time_limite = current_time - timedelta(minutes=2)
+
+    for code in estoque:
+
+        last_remove_time = estoque[code]["last_remove_time"]
+        if last_remove_time != 0:
+
+            if isinstance(last_remove_time, str):
+                last_remove_time = datetime.strptime(last_remove_time, '%Y-%m-%d %H:%M:%S.%f')
+            if isinstance(last_remove_time, datetime):
+                last_remove_timestamp = int(last_remove_time.timestamp())
+                if last_remove_timestamp < int(time_limite.timestamp()):
+                    notSold.append(estoque[code]['name'])
+        else:
+            last_insert_time = estoque[code]["last_insert_time"]
+            if isinstance(last_insert_time, str):
+                last_insert_time = datetime.strptime(last_insert_time, '%Y-%m-%d %H:%M:%S.%f')
+            if isinstance(last_insert_time, datetime):
+                last_insert_timestamp = int(last_insert_time.timestamp())
+                if last_insert_timestamp < int(time_limite.timestamp()):
+                    notSold.append(estoque[code]['name'])
+    print(notSold)
+    return notSold
 def server_side_event():
     """ Function to publish server side event """
     with app.app_context():
         #sse.publish("ameba", type='randomtype')
-        sse.publish(get_data(), type='dataUpdate')
-        print("Event Scheduled at ",datetime.datetime.now())
+        sse.publish(notSoldReport(), type='dataUpdate')
+        #sse.publish(get_data(), type='dataUpdate')
+        print("Event Scheduled at ",datetime.now())
 
 
 # sched = BackgroundScheduler(daemon=True)
@@ -42,10 +69,10 @@ def insert_item():
     name = data["name"]
     description = data["description"]
     price = data["price"]
-    minStorage = data['minStorage']
-    qnt = data['qnt']
+    minStorage = int(data['minStorage'])
+    qnt = int(data['qnt'])
 
-
+    print(data)
     if code in estoque:
         estoque[code]["name"] = name
         estoque[code]["description"] = description
@@ -72,11 +99,13 @@ def insert_item():
 @app.route('/remove', methods=["POST"])
 def remove_item():
     data = request.get_json()
+    #data = request.json()
+    print(data)
 
     current_time = datetime.now()
 
     code = data['code']
-    qnt = data['qnt']
+    qnt = int(data['qnt'])
 
     if code in estoque:
         #if amount to remove is bigger than existing
@@ -88,9 +117,12 @@ def remove_item():
             sse.publish(f"Estoque minimo de {estoque[code]['name']} atingido", type='dataUpdate')
             estoque[code]["last_remove_time"] = current_time
             return "1: Operação concluída, objeto no limite"
-        else:
-            print('O item requerido não está disponível')
-            return 'ERROR: O item requerido não está disponível'
+        estoque[code]["qnt"] -= qnt
+        estoque[code]["last_remove_time"] = current_time  
+        return "0: Operação concluída"
+    else:
+        print('O item requerido não está disponível')
+        return 'ERROR: O item requerido não está disponível'
     
 
     #return "OK"

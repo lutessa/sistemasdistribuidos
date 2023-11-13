@@ -7,12 +7,12 @@
     <h1>Saída de Produtos:</h1>
     <form id="formulario">
         <label for="codigo">Código:</label>
-        <input type="text" id="campo1" name="campo1"><br>
+        <input type="text" id="code" name="code"><br>
 
         <label for="quantidade">Quantidade:</label>
-        <input type="text" id="campo4" name="campo4"><br>
+        <input type="text" id="qnt" name="qnt"><br>
 
-   <button type="button" onclick="enviarDados()">Enviar</button>
+        <input type="submit" value="Enviar">
     </form>
     <button id="Pagina Inicial" onclick="paginaInicial()">Voltar</button>
 
@@ -21,16 +21,37 @@
     <div id="eventosRecebidos"></div>
 
     <script>
-        function enviarDados() {
-            // Aqui você pode acessar os valores dos campos de entrada
-            var valorCampo1 = document.getElementById("campo1").value;
-            var valorCampo4 = document.getElementById("campo4").value;
+        document.getElementById('formulario').addEventListener('submit', function(e) {
+            e.preventDefault(); 
+            var code = document.getElementById('code').value;
+            var qnt = document.getElementById('qnt').value;
 
+            // Cria um objeto JSON com os valores
+            var jsonData = {
+                "code": code,
+                "qnt": qnt
+            };
+            console.log(code)
 
-            // Faça o que desejar com os valores, como enviar para o servidor ou processá-los localmente
-            // Por exemplo, exibindo os valores em um alert:
-            alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 2: " + valorCampo2 + "\nCampo 3: " + valorCampo3 + "\nCampo 4: " + valorCampo4 + "\nCampo 5: " + valorCampo5 + "\nCampo 6: " + valorCampo6);
-        }
+            // Faz a solicitação POST com o JSON
+            fetch('http://localhost:5000/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+                //mode: "no-cors"
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Lógica para lidar com a resposta do servidor, se necessário
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+        });
+
         function paginaInicial() {
             window.location.href = 'mainPage.html';
         }
