@@ -7,12 +7,13 @@
     <h1>Saída de Produtos:</h1>
     <form id="formulario">
         <label for="codigo">Código:</label>
-        <input type="text" id="campo1" name="campo1"><br>
+        <input type="text" id="code" name="code"><br>
 
         <label for="quantidade">Quantidade:</label>
-        <input type="text" id="campo4" name="campo4"><br>
+        <input type="text" id="qnt" name="qnt"><br>
 
-   <button type="button" onclick="enviarDados()">Enviar</button>
+        <!-- <input type="submit" value="Enviar"> -->
+        <button type="button" onclick="enviarDados()">Enviar</button>
     </form>
     <button id="Pagina Inicial" onclick="paginaInicial()">Voltar</button>
 
@@ -22,37 +23,35 @@
 
     <script>
         function enviarDados() {
-            // Aqui você pode acessar os valores dos campos de entrada
-            var valorCampo1 = document.getElementById("campo1").value;
-            var valorCampo4 = document.getElementById("campo4").value;
+            var code = document.getElementById('code').value;
+            var qnt = document.getElementById('qnt').value;
 
 
-            // Faça o que desejar com os valores, como enviar para o servidor ou processá-los localmente
-            // Por exemplo, exibindo os valores em um alert:
-            alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 4: " + valorCampo4);
+            var jsonData = {
+                "code": code,
+                "qnt": qnt
+            };
+            console.log(code)
 
-            item_data = [
-                {"code":valorCampo1, "qnt":valorCampo4}
-            ]
+ 
+            fetch('http://localhost:5000/remove', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+                //mode: "no-cors"
+            })
+            .then(response => response.text())
+            .then(data => {
 
-            fetch("http://localhost:5000/remove",
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(item_data)}).then(res=>{
-                        if(res.ok){
-                            return res.json()
-                        }else{
-                            alert("data format is incorrect")
-                        }
-                    }).then(jsonResponse=>{
-                        console.log(jsonResponse)
-                    }).catch((err)=>console.error(err));
-                }
-        
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+        };
+
         function paginaInicial() {
             window.location.href = 'mainPage.html';
         }
@@ -60,7 +59,7 @@
         var source = new EventSource("http://localhost:5000/events");
             source.addEventListener('dataUpdate', function(event) {
             
-            //source.addEventListener('publish', function(event) {
+
                 
                 console.log("EVENT");
                 // var data = event.data
@@ -68,7 +67,7 @@
                 var data = JSON.parse(event.data);
                 var mensagem = "O servidor diz: " + data.message;
 
-                // Exibir a mensagem na div "eventosRecebidos"
+  
                 eventosRecebidos.innerHTML += "<p>" + mensagem + "</p>";
                 console.log(mensagem)
                 
