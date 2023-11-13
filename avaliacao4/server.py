@@ -50,8 +50,6 @@ def server_side_event():
         print("Event Scheduled at ",datetime.now())
 
 
-
-
 # sched = BackgroundScheduler(daemon=True)
 # sched.add_job(server_side_event,'interval',seconds=get_schd_time())
 # sched.start()
@@ -63,12 +61,12 @@ def insert_item():
     
     current_time = datetime.now()
 
-    code = data[0]['code']
-    name = data[0]["name"]
-    description = data[0]["description"]
-    price = data[0]["price"]
-    minStorage = data[0]['minStorage']
-    qnt = int(data[0]['qnt'])
+    code = data['code']
+    name = data["name"]
+    description = data["description"]
+    price = data["price"]
+    minStorage = data['minStorage']
+    qnt = int(data['qnt'])
 
     print(data)
     if code in estoque:
@@ -103,8 +101,8 @@ def remove_item():
 
     current_time = datetime.now()
 
-    code = data[0]['code']
-    qnt = int(data[0]['qnt'])
+    code = data['code']
+    qnt = int(data['qnt'])
 
     if code in estoque:
         #if amount to remove is bigger than existing
