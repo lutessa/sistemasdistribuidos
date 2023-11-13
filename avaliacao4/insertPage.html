@@ -1,8 +1,5 @@
 <!DOCTYPE html>
 <html>
-    <style>
-        
-    </style>
 <head>
     <title>Página de Entrada de Produtos</title>
 </head>
@@ -27,6 +24,7 @@
         <label for="estoque">Estoque mínimo:</label>
         <input type="text" id="minStorage" name="minStorage"><br>
 
+        <!-- <input type="submit" value="Enviar"> -->
         <button type="button" onclick="enviarDados()">Enviar</button>
     </form>
 
@@ -36,46 +34,51 @@
     <h1>Eventos Recebidos</h1>
     <div id="eventosRecebidos"></div>
 
-    <script>
+    <script>        
         function enviarDados() {
-            // Aqui você pode acessar os valores dos campos de entrada
-            var valorCampo1 = document.getElementById("code").value;
-            var valorCampo2 = document.getElementById("name").value;
-            var valorCampo3 = document.getElementById("description").value;
-            var valorCampo4 = document.getElementById("qnt").value;
-            var valorCampo5 = document.getElementById("price").value;
-            var valorCampo6 = document.getElementById("minStorage").value;
 
-            // Faça o que desejar com os valores, como enviar para o servidor ou processá-los localmente
-            // Por exemplo, exibindo os valores em um alert:
+            var code = document.getElementById('code').value;
+            var name = document.getElementById('name').value;
+            var description = document.getElementById('description').value;
+            var qnt = document.getElementById('qnt').value;
+            var price = document.getElementById('price').value;
+            var minStorage = document.getElementById('minStorage').value;
 
-            alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 2: " + valorCampo2 + "\nCampo 3: " + valorCampo3 + "\nCampo 4: " + valorCampo4 + "\nCampo 5: " + valorCampo5 + "\nCampo 6: " + valorCampo6);
+ 
+            var jsonData = {
+                "code": code,
+                "name": name,
+                "description": description,
+                "qnt": qnt,
+                "price": price,
+                "minStorage": minStorage
+            };
+            console.log(code)
 
-            item_data = [
-                {"code":valorCampo1, "name":valorCampo2, "description":valorCampo3, "qnt":valorCampo4, "price":valorCampo5, "minStorage":valorCampo6}
-            ]
 
-            fetch("http://localhost:5000/insert",
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(item_data)}).then(res=>{
-                        if(res.ok){
-                            return res.json()
-                        }else{
-                            alert("data format is incorrect")
-                        }
-                    }).then(jsonResponse=>{
-                        console.log(jsonResponse)
-                    }).catch((err)=>console.error(err));
-                }
-            
+            fetch('http://localhost:5000/insert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(jsonData)
+                //mode: "no-cors"
+            })
+            .then(response => response.text())
+            .then(data => {
+
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+            });
+        };
+
+
         function paginaInicial() {
             window.location.href = 'mainPage.html';
         }
+
         var eventosRecebidos = document.getElementById("eventosRecebidos");
         var source = new EventSource("http://localhost:5000/events");
             source.addEventListener('dataUpdate', function(event) {
