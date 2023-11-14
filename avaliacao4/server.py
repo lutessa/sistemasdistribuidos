@@ -26,6 +26,7 @@ def notSoldReport():
     current_time = datetime.now()
 
     current_timestamp = int(current_time.timestamp())
+    
     for code in estoque:
 
         last_remove_time = estoque[code]["last_remove_time"]
@@ -34,25 +35,31 @@ def notSoldReport():
         if last_remove_timestamp != 946695600:  #0
 
             if (current_timestamp - int(last_remove_timestamp)) > 120:
+                print(code)
                 notSold.append(estoque[code]['name'])
         else:
             last_insert_time = estoque[code]["last_insert_time"]
             last_insert_timestamp = int(last_insert_time.timestamp())
 
             if (current_timestamp - last_insert_timestamp) > 120:
+                print(code)
                 notSold.append(estoque[code]['name'])
-    print(notSold)
-    return notSold
+        print('notSold:', notSold)
+        print(estoque)
+        return notSold
+
 def server_side_event():
     """ Function to publish server side event """
     with app.app_context():
-        sse.publish(notSoldReport(), type='dataUpdate')
-        print("Event Scheduled at ",datetime.now())
+        notSoldList = notSoldReport()
+        if notSoldList:
+            sse.publish(notSoldReport(), type='dataUpdate')
+            print("Event Scheduled at ",datetime.now())
 
 
-# sched = BackgroundScheduler(daemon=True)
-# sched.add_job(server_side_event,'interval',seconds=get_schd_time())
-# sched.start()
+sched = BackgroundScheduler(daemon=True)
+sched.add_job(server_side_event,'interval',seconds=get_schd_time())
+sched.start()
 
 @app.route('/insert', methods=["POST"])
 def insert_item():
@@ -89,6 +96,7 @@ def insert_item():
                             "last_remove_time": datetime(2000,1,1)#datetime.fromtimestamp(0)
                         }
         print("Novo objeto adicionado com sucesso")
+
         return "Novo objeto adicionado com sucesso"
 
     #return "OK"
@@ -111,7 +119,7 @@ def remove_item():
             return "ERROR: O estoque é insuficiente para ser retirada a quantidade pedida"
         if (estoque[code]["qnt"])-qnt < int(estoque[code]["minStorage"]):
             print("sending flag")
-            sse.publish(f"Estoque minimo de {estoque[code]['name']} atingido", type='dataUpdate')
+            sse.publish(f"Estoque minimo de {estoque[code]['name']} atingido", type='warningUpdate')
             estoque[code]["last_remove_time"] = current_time
             # return "1: Operação concluída, objeto no limite"
         estoque[code]["qnt"] -= qnt

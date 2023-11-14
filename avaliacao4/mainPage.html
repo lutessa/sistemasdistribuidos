@@ -33,14 +33,26 @@
             //source.addEventListener('publish', function(event) {
                 
                 console.log("EVENT");
-                // var data = event.data
-                // console.log(data)
-                var data = JSON.parse(event.data);
-
-                // Exibir a mensagem na div "eventosRecebidos"
-                eventosRecebidos.innerHTML += "<p>" + data[0] + "</p>";
-
+                var data = event.data;
+                let regex = /\(|\)|\[|\]/g;
+                data = data.replace(regex, "");
+                data = data.replace(/['"]+/g, '');
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode("O item  " + data + " está sem vendas");
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
                 
+            }, false);
+
+            source.addEventListener('warningUpdate', function(event){
+                var data = event.data;
+                let regex = /\(|\)|\[|\]/g;
+                data = data.replace(regex, "");
+                data = data.replace(/['"]+/g, '');
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode("O item  " + data + " alcançou o estoque mínimo");
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
             }, false);
 
             source.addEventListener('error', function(event) {

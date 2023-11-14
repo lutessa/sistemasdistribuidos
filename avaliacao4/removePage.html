@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Página de Retirada de Produtos</title>
+    <title>Pá&iacute;gina de Retirada de Produtos</title>
 </head>
 <body>
-    <h1>Saída de Produtos:</h1>
+    <h1>Sa&iacute;da de Produtos:</h1>
     <form id="formulario">
         <label for="codigo">Código:</label>
         <input type="text" id="code" name="code"><br>
@@ -59,18 +59,30 @@
         var source = new EventSource("http://localhost:5000/events");
             source.addEventListener('dataUpdate', function(event) {
             
-
+            //source.addEventListener('publish', function(event) {
                 
                 console.log("EVENT");
-                // var data = event.data
-                // console.log(data)
-                var data = JSON.parse(event.data);
-                var mensagem = "O servidor diz: " + data.message;
-
-  
-                eventosRecebidos.innerHTML += "<p>" + mensagem + "</p>";
-                console.log(mensagem)
+                var data = event.data;
+                let regex = /\(|\)|\[|\]/g;
+                data = data.replace(regex, "");
+                data = data.replace(/['"]+/g, '');
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode("O item  " + data + " tem poucas vendas");
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
                 
+            }, false);
+
+            source.addEventListener('warningUpdate', function(event){
+                var data = event.data;
+                // let regex = /\(|\)|\[|\]/g;
+                // data = data.replace(regex, "");
+                // data = data.replace(/['"]+/g, '');
+                const node = document.createElement("p");   
+                // const textNode = document.createTextNode("O item  " + data + " alcançou o estoque mínimo");
+                const textNode = document.createTextNode(data);
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
             }, false);
 
             source.addEventListener('error', function(event) {
