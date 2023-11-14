@@ -31,8 +31,9 @@ def notSoldReport():
 
         last_remove_time = estoque[code]["last_remove_time"]
         last_remove_timestamp = int(last_remove_time.timestamp())
+        start = int(datetime(2000,1,1).timestamp())
 
-        if last_remove_timestamp != 946695600:  #0
+        if last_remove_timestamp != start: #946692000:  #0
 
             if (current_timestamp - int(last_remove_timestamp)) > 120:
                 print(code)
@@ -44,9 +45,9 @@ def notSoldReport():
             if (current_timestamp - last_insert_timestamp) > 120:
                 print(code)
                 notSold.append(estoque[code]['name'])
-        print('notSold:', notSold)
-        print(estoque)
-        return notSold
+        # print('notSold:', notSold)
+    # print(estoque)
+    return notSold
 
 def server_side_event():
     """ Function to publish server side event """
@@ -54,7 +55,7 @@ def server_side_event():
         notSoldList = notSoldReport()
         if notSoldList:
             sse.publish(notSoldReport(), type='dataUpdate')
-            print("Event Scheduled at ",datetime.now())
+            # print("Event Scheduled at ",datetime.now())
 
 
 sched = BackgroundScheduler(daemon=True)
@@ -163,7 +164,7 @@ def semSaida():
         last_remove_time = estoque[code]["last_remove_time"]
         last_remove_timestamp = last_remove_time.timestamp()
 
-        if (last_remove_timestamp == 946695600) or (last_remove_timestamp < periodoInicial_timestamp):  #last_remove_time == 0
+        if (last_remove_timestamp == int(datetime(2000,1,1).timestamp())) or (last_remove_timestamp < periodoInicial_timestamp):  #last_remove_time == 0
             product = {"code": code,
                        "name": estoque[code]['name'],
                        "last_remove_time": estoque[code]["last_remove_time"]}

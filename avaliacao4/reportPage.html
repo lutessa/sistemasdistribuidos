@@ -42,12 +42,16 @@
             fetch('http://localhost:5000/estoque', {
                 method: 'GET'
             })
-            .then(response => {
-                if (!response.ok){
-                    throw new Error('Erro na requisição: ${response.status}');
+            .then(response => response.json())
+            .then((data)=>{
+                console.log(data);
+                for (var i in data){
+                    var eventosRecebidos = document.getElementById("eventosRecebidos");
+                    const node = document.createElement("p");   
+                    const textNode = document.createTextNode("O(s) item(s) no estoque é(são)  " + data[i].name);
+                    node.appendChild(textNode);
+                    eventosRecebidos.appendChild(node);
                 }
-                //response.json();
-                console.log(response.json());
             })
             .catch(error => {
                 console.error('Erro:', error);
@@ -69,6 +73,14 @@
             .then(data => {
 
                 console.log(data);
+                const obj = JSON.parse(data)
+                for (var i in data){   
+                    var eventosRecebidos = document.getElementById("eventosRecebidos");
+                    const node = document.createElement("p");   
+                    const textNode = document.createTextNode("O item  " + obj[i].name + " teve entrada em " + obj[i].last_insert_time + " e saída em " + obj[i].last_remove_time);
+                    node.appendChild(textNode);
+                    eventosRecebidos.appendChild(node);
+                }
             })
             .catch(error => {
                 console.error('Erro:', error);
@@ -87,11 +99,20 @@
             .then(data => {
 
                 console.log(data);
+                // const obj = JSON.parse(data)
+                for (var i in data){   
+                    var eventosRecebidos = document.getElementById("eventosRecebidos");
+                    const node = document.createElement("p");   
+                    const textNode = document.createTextNode("O item  " + data[i].name + " não teve saída nos últimos tempos.");
+                    node.appendChild(textNode);
+                    eventosRecebidos.appendChild(node);
+                }
             })
             .catch(error => {
                 console.error('Erro:', error);
             });
         }
+
         // var eventosRecebidos = document.getElementById("eventosRecebidos");
         // var source = new EventSource("http://localhost:5000/events");
         //     source.addEventListener('dataUpdate', function(event) {
@@ -99,18 +120,27 @@
         //     //source.addEventListener('publish', function(event) {
                 
         //         console.log("EVENT");
-        //         // var data = event.data
-        //         // console.log(data)
-        //         var data = JSON.parse(event.data);
-        //         var mensagem = "O servidor diz: " + data.message;
-
-        //         // Exibir a mensagem na div "eventosRecebidos"
-        //         eventosRecebidos.innerHTML += "<p>" + data + "</p>";
-        //         console.log(mensagem)
+        //         var data = event.data;
+        //         let regex = /\(|\)|\[|\]/g;
+        //         data = data.replace(regex, "");
+        //         data = data.replace(/['"]+/g, '');
+        //         const node = document.createElement("p");   
+        //         const textNode = document.createTextNode("O item  " + data + " tem poucas vendas");
+        //         node.appendChild(textNode);
+        //         eventosRecebidos.appendChild(node);
                 
         //     }, false);
 
+        //     source.addEventListener('warningUpdate', function(event){
+        //         var data = event.data;
+        //         const node = document.createElement("p");   
+        //         const textNode = document.createTextNode(data);
+        //         node.appendChild(textNode);
+        //         eventosRecebidos.appendChild(node);
+        //     }, false);
+
         //     source.addEventListener('error', function(event) {
+        //         console.log("EVENT");
         //         console.log("Erro: " + event);
         //         alert("Falha ao conectar ao fluxo de eventos. Verifique a configuração do servidor SSE.");
         //     }, false);

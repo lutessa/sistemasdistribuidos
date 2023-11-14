@@ -46,11 +46,8 @@
 
             source.addEventListener('warningUpdate', function(event){
                 var data = event.data;
-                let regex = /\(|\)|\[|\]/g;
-                data = data.replace(regex, "");
-                data = data.replace(/['"]+/g, '');
                 const node = document.createElement("p");   
-                const textNode = document.createTextNode("O item  " + data + " alcançou o estoque mínimo");
+                const textNode = document.createTextNode(data);
                 node.appendChild(textNode);
                 eventosRecebidos.appendChild(node);
             }, false);
