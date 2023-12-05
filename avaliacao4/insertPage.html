@@ -24,7 +24,8 @@
         <label for="estoque">Estoque mínimo:</label>
         <input type="text" id="minStorage" name="minStorage"><br>
 
-        <input type="submit" value="Enviar">
+        <!-- <input type="submit" value="Enviar"> -->
+        <button type="button" onclick="enviarDados()">Enviar</button>
     </form>
 
     <button id="Pagina Inicial" onclick="paginaInicial()">Voltar</button>
@@ -34,10 +35,8 @@
     <div id="eventosRecebidos"></div>
 
     <script>        
-        document.getElementById('formulario').addEventListener('submit', function(e) {
-            e.preventDefault(); // Impede o envio padrão do formulário
+        function enviarDados() {
 
-            // Captura os valores dos campos do formulário
             var code = document.getElementById('code').value;
             var name = document.getElementById('name').value;
             var description = document.getElementById('description').value;
@@ -45,7 +44,7 @@
             var price = document.getElementById('price').value;
             var minStorage = document.getElementById('minStorage').value;
 
-            // Cria um objeto JSON com os valores
+ 
             var jsonData = {
                 "code": code,
                 "name": name,
@@ -56,7 +55,7 @@
             };
             console.log(code)
 
-            // Faz a solicitação POST com o JSON
+
             fetch('http://localhost:5000/insert', {
                 method: 'POST',
                 headers: {
@@ -67,27 +66,15 @@
             })
             .then(response => response.text())
             .then(data => {
-                // Lógica para lidar com a resposta do servidor, se necessário
+
                 console.log(data);
             })
             .catch(error => {
                 console.error('Erro:', error);
             });
-        });
+        };
 
-        // function enviarDados() {
-        //     // Aqui você pode acessar os valores dos campos de entrada
-        //     var valorCampo1 = document.getElementById("code").value;
-        //     var valorCampo2 = document.getElementById("name").value;
-        //     var valorCampo3 = document.getElementById("description").value;
-        //     var valorCampo4 = document.getElementById("qnt").value;
-        //     var valorCampo5 = document.getElementById("price").value;
-        //     var valorCampo6 = document.getElementById("minStorage").value;
 
-        //     // Faça o que desejar com os valores, como enviar para o servidor ou processá-los localmente
-        //     // Por exemplo, exibindo os valores em um alert:
-        //     alert("Valores inseridos:\nCampo 1: " + valorCampo1 + "\nCampo 2: " + valorCampo2 + "\nCampo 3: " + valorCampo3 + "\nCampo 4: " + valorCampo4 + "\nCampo 5: " + valorCampo5 + "\nCampo 6: " + valorCampo6);
-        // }
         function paginaInicial() {
             window.location.href = 'mainPage.html';
         }
@@ -99,15 +86,24 @@
             //source.addEventListener('publish', function(event) {
                 
                 console.log("EVENT");
-                // var data = event.data
-                // console.log(data)
-                var data = JSON.parse(event.data);
-                var mensagem = "O servidor diz: " + data.message;
-
-                // Exibir a mensagem na div "eventosRecebidos"
-                eventosRecebidos.innerHTML += "<p>" + data + "</p>";
-                console.log(mensagem)
+                var data = event.data;
+                if(data != ''){
+                let regex = /\(|\)|\[|\]/g;
+                data = data.replace(regex, "");
+                data = data.replace(/['"]+/g, '');
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode("O item  " + data + " está sem vendas");
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);}
                 
+            }, false);
+
+            source.addEventListener('warningUpdate', function(event){
+                var data = event.data;
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode(data);
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
             }, false);
 
             source.addEventListener('error', function(event) {

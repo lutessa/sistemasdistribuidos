@@ -3,9 +3,10 @@ from flask_sse import sse
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_cors import CORS
+import json
 #import datetime
-from helper import get_data,get_schd_time
-from datetime import datetime, timedelta
+from helper import get_schd_time #get_data,
+from datetime import datetime, timedelta 
 estoque = {}
 app = Flask(__name__)
 CORS(app)
@@ -23,45 +24,48 @@ log.addHandler(h)
 def notSoldReport():
     notSold = []
     current_time = datetime.now()
-    time_limite = current_time - timedelta(minutes=2)
 
+    current_timestamp = int(current_time.timestamp())
+    
     for code in estoque:
 
         last_remove_time = estoque[code]["last_remove_time"]
-        if last_remove_time != 0:
+        last_remove_timestamp = int(last_remove_time.timestamp())
+        start = int(datetime(2000,1,1).timestamp())
 
-            if isinstance(last_remove_time, str):
-                last_remove_time = datetime.strptime(last_remove_time, '%Y-%m-%d %H:%M:%S.%f')
-            if isinstance(last_remove_time, datetime):
-                last_remove_timestamp = int(last_remove_time.timestamp())
-                if last_remove_timestamp < int(time_limite.timestamp()):
-                    notSold.append(estoque[code]['name'])
+        if last_remove_timestamp != start: #946692000:  #0
+
+            if (current_timestamp - int(last_remove_timestamp)) > 120:
+                print(code)
+                notSold.append(estoque[code]['name'])
         else:
             last_insert_time = estoque[code]["last_insert_time"]
-            if isinstance(last_insert_time, str):
-                last_insert_time = datetime.strptime(last_insert_time, '%Y-%m-%d %H:%M:%S.%f')
-            if isinstance(last_insert_time, datetime):
-                last_insert_timestamp = int(last_insert_time.timestamp())
-                if last_insert_timestamp < int(time_limite.timestamp()):
-                    notSold.append(estoque[code]['name'])
-    print(notSold)
+            last_insert_timestamp = int(last_insert_time.timestamp())
+
+            if (current_timestamp - last_insert_timestamp) > 120:
+                print(code)
+                notSold.append(estoque[code]['name'])
+        # print('notSold:', notSold)
+    # print(estoque)
     return notSold
+
 def server_side_event():
     """ Function to publish server side event """
     with app.app_context():
-        #sse.publish("ameba", type='randomtype')
-        sse.publish(notSoldReport(), type='dataUpdate')
-        #sse.publish(get_data(), type='dataUpdate')
-        print("Event Scheduled at ",datetime.now())
+        notSoldList = notSoldReport()
+        if notSoldList:
+            sse.publish(notSoldReport(), type='dataUpdate')
+            # print("Event Scheduled at ",datetime.now())
 
 
-# sched = BackgroundScheduler(daemon=True)
-# sched.add_job(server_side_event,'interval',seconds=get_schd_time())
-# sched.start()
+sched = BackgroundScheduler(daemon=True)
+sched.add_job(server_side_event,'interval',seconds=get_schd_time())
+sched.start()
 
 @app.route('/insert', methods=["POST"])
 def insert_item():
     data = request.get_json()
+    # data = json.loads(data)
     
     current_time = datetime.now()
 
@@ -69,7 +73,7 @@ def insert_item():
     name = data["name"]
     description = data["description"]
     price = data["price"]
-    minStorage = int(data['minStorage'])
+    minStorage = data['minStorage']
     qnt = int(data['qnt'])
 
     print(data)
@@ -78,9 +82,9 @@ def insert_item():
         estoque[code]["description"] = description
         estoque[code]["price"] = price
         estoque[code]["minStorage"] = minStorage
-        estoque[code]["qnt"] += qnt
+        estoque[code]["qnt"] += int(qnt)
         estoque[code]["last_insert_time"] = current_time
-
+        print(estoque[code]['qnt'])
         return "Objeto inserido com sucesso"
     else:
         estoque[code] = {
@@ -90,8 +94,10 @@ def insert_item():
                             "minStorage": minStorage,
                             "qnt": qnt,
                             "last_insert_time": current_time,
-                            "last_remove_time": datetime.fromtimestamp(0)
+                            "last_remove_time": datetime(2000,1,1)#datetime.fromtimestamp(0)
                         }
+        print("Novo objeto adicionado com sucesso")
+
         return "Novo objeto adicionado com sucesso"
 
     #return "OK"
@@ -109,14 +115,14 @@ def remove_item():
 
     if code in estoque:
         #if amount to remove is bigger than existing
-        if qnt > estoque[code]["qnt"]:
+        if (qnt > estoque[code]["qnt"]):
             print('O estoque é insuficiente para ser retirada a quantidade pedida')
             return "ERROR: O estoque é insuficiente para ser retirada a quantidade pedida"
-        if estoque[code]["qnt"]-qnt < estoque[code]["minStorage"]:
+        if (estoque[code]["qnt"])-qnt < int(estoque[code]["minStorage"]):
             print("sending flag")
-            sse.publish(f"Estoque minimo de {estoque[code]['name']} atingido", type='dataUpdate')
+            sse.publish(f"Estoque minimo de {estoque[code]['name']} atingido", type='warningUpdate')
             estoque[code]["last_remove_time"] = current_time
-            return "1: Operação concluída, objeto no limite"
+            # return "1: Operação concluída, objeto no limite"
         estoque[code]["qnt"] -= qnt
         estoque[code]["last_remove_time"] = current_time  
         return "0: Operação concluída"
@@ -124,10 +130,83 @@ def remove_item():
         print('O item requerido não está disponível')
         return 'ERROR: O item requerido não está disponível'
     
+@app.route('/estoque', methods=['GET'])
+def emEstoque():
+    emEstoque = []
 
-    #return "OK"
+    for code in estoque:
+        if estoque[code]['qnt'] > 0:
+            product = {"code": code,
+                       "name": estoque[code]['name'],
+                       "qnt": estoque[code]['qnt']}
+            emEstoque.append(product)
+    print(emEstoque)
+    return jsonify(emEstoque)
 
 
+@app.route('/semsaida', methods=['POST'])
+def semSaida():
+    data_inicial = request.form.get('dataInicial')
+    hora_inicial = request.form.get('horaInicial')
+    data_final = request.form.get('dataFinal')
+    hora_final = request.form.get('horaFinal')
+
+    periodoInicial = datetime.strptime(f'{data_inicial} {hora_inicial}', '%Y-%m-%d %H:%M')
+    periodoFinal = datetime.strptime(f'{data_final} {hora_final}', '%Y-%m-%d %H:%M')
+    
+    print(periodoInicial)
+    print(periodoFinal)
+
+    items = []
+    periodoInicial_timestamp = periodoInicial.timestamp()
+
+    for code in estoque:
+        last_remove_time = estoque[code]["last_remove_time"]
+        last_remove_timestamp = last_remove_time.timestamp()
+
+        if (last_remove_timestamp == int(datetime(2000,1,1).timestamp())) or (last_remove_timestamp < periodoInicial_timestamp):  #last_remove_time == 0
+            product = {"code": code,
+                       "name": estoque[code]['name'],
+                       "last_remove_time": estoque[code]["last_remove_time"]}
+
+            items.append(product)
+    print(items)
+    return items
+
+
+@app.route('/fluxo', methods=['POST'])
+def fluxoPorPeriodo():
+    data_inicial = request.form.get('dataInicial')
+    hora_inicial = request.form.get('horaInicial')
+    data_final = request.form.get('dataFinal')
+    hora_final = request.form.get('horaFinal')
+
+    periodoInicial = datetime.strptime(f'{data_inicial} {hora_inicial}', '%Y-%m-%d %H:%M')
+    periodoFinal = datetime.strptime(f'{data_final} {hora_final}', '%Y-%m-%d %H:%M')
+    
+    print(periodoInicial)
+    print(periodoFinal)
+
+    items = [] 
+
+    periodoInicial_timestamp = periodoInicial.timestamp()
+    periodoFinal_timestamp = periodoFinal.timestamp()
+
+    for code in estoque:
+        last_insert_timestamp = estoque[code]["last_insert_time"].timestamp()
+
+        last_remove_timestamp = estoque[code]["last_remove_time"].timestamp()
+
+        if (((last_remove_timestamp > periodoInicial_timestamp) and (last_remove_timestamp < periodoFinal_timestamp)) or ((last_insert_timestamp > periodoInicial_timestamp) and (last_insert_timestamp < periodoFinal_timestamp))):
+            product = {"code": code,
+                       "name": estoque[code]['name'],
+                       "last_insert_time": estoque[code]["last_insert_time"],
+                       "last_remove_time": estoque[code]["last_remove_time"]}
+
+            items.append(product)
+    print(items)
+    return items
+    #return "0"
 
 if __name__ == '__main__':
    app.run(debug=True,host='0.0.0.0',port=5000)

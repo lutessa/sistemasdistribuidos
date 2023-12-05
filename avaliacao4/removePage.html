@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Página de Retirada de Produtos</title>
+    <title>Pá&iacute;gina de Retirada de Produtos</title>
 </head>
 <body>
-    <h1>Saída de Produtos:</h1>
+    <h1>Sa&iacute;da de Produtos:</h1>
     <form id="formulario">
         <label for="codigo">Código:</label>
         <input type="text" id="code" name="code"><br>
@@ -12,7 +12,8 @@
         <label for="quantidade">Quantidade:</label>
         <input type="text" id="qnt" name="qnt"><br>
 
-        <input type="submit" value="Enviar">
+        <!-- <input type="submit" value="Enviar"> -->
+        <button type="button" onclick="enviarDados()">Enviar</button>
     </form>
     <button id="Pagina Inicial" onclick="paginaInicial()">Voltar</button>
 
@@ -21,19 +22,18 @@
     <div id="eventosRecebidos"></div>
 
     <script>
-        document.getElementById('formulario').addEventListener('submit', function(e) {
-            e.preventDefault(); 
+        function enviarDados() {
             var code = document.getElementById('code').value;
             var qnt = document.getElementById('qnt').value;
 
-            // Cria um objeto JSON com os valores
+
             var jsonData = {
                 "code": code,
                 "qnt": qnt
             };
             console.log(code)
 
-            // Faz a solicitação POST com o JSON
+ 
             fetch('http://localhost:5000/remove', {
                 method: 'POST',
                 headers: {
@@ -44,13 +44,13 @@
             })
             .then(response => response.text())
             .then(data => {
-                // Lógica para lidar com a resposta do servidor, se necessário
+
                 console.log(data);
             })
             .catch(error => {
                 console.error('Erro:', error);
             });
-        });
+        };
 
         function paginaInicial() {
             window.location.href = 'mainPage.html';
@@ -62,15 +62,23 @@
             //source.addEventListener('publish', function(event) {
                 
                 console.log("EVENT");
-                // var data = event.data
-                // console.log(data)
-                var data = JSON.parse(event.data);
-                var mensagem = "O servidor diz: " + data.message;
-
-                // Exibir a mensagem na div "eventosRecebidos"
-                eventosRecebidos.innerHTML += "<p>" + mensagem + "</p>";
-                console.log(mensagem)
+                var data = event.data;
+                let regex = /\(|\)|\[|\]/g;
+                data = data.replace(regex, "");
+                data = data.replace(/['"]+/g, '');
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode("O item  " + data + " tem poucas vendas");
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
                 
+            }, false);
+
+            source.addEventListener('warningUpdate', function(event){
+                var data = event.data;
+                const node = document.createElement("p");   
+                const textNode = document.createTextNode(data);
+                node.appendChild(textNode);
+                eventosRecebidos.appendChild(node);
             }, false);
 
             source.addEventListener('error', function(event) {
