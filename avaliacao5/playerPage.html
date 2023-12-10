@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player ID Loader</title>
+</head>
+<body>
+    <h1>Player ID Loader</h1>
+    <label for="fileInput">Choose Player File:</label>
+    <input type="file" id="fileInput" accept=".txt">
+    <button onclick="loadData()">Load Data</button>
+
+    <div id="result"></div>
+
+    <script>
+        function loadData() {
+            // Limpar resultados anteriores
+            document.getElementById('result').innerHTML = '';
+
+            // Obter o elemento de entrada de arquivo
+            var fileInput = document.getElementById('fileInput');
+
+            // Verificar se um arquivo foi selecionado
+            if (fileInput.files.length > 0) {
+                // Obter o primeiro arquivo selecionado
+                var file = fileInput.files[0];
+
+                // Criar um objeto FileReader
+                var reader = new FileReader();
+
+                // Configurar a função de callback quando a leitura estiver concluída
+                reader.onload = function(event) {
+                    // Processar o conteúdo do arquivo .txt
+                    var lines = event.target.result.split('\n');
+
+                    // Criar checkboxes para cada objeto na linha
+                    for (var i = 0; i < lines.length; i++) {
+                        var checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = 'checkbox' + i;
+                        checkbox.value = lines[i];
+
+                        var label = document.createElement('label');
+                        label.htmlFor = 'checkbox' + i;
+                        label.appendChild(document.createTextNode(lines[i]));
+
+                        // Adicionar checkbox e label ao resultado
+                        document.getElementById('result').appendChild(checkbox);
+                        document.getElementById('result').appendChild(label);
+                        document.getElementById('result').appendChild(document.createElement('br'));
+                    }
+                };
+
+                // Ler o conteúdo do arquivo
+                reader.readAsText(file);
+            } else {
+                alert('Please choose a file.');
+            }
+        }
+    </script>
+</body>
+</html>
