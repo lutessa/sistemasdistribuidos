@@ -14,6 +14,8 @@ class Player:
         self.uri = self.daemon.register(self) 
         self.ns = Pyro5.api.locate_ns()
         self.ns.register(player_id, self.uri)
+        self.client_thread = threading.Thread(target=self.daemon.requestLoop)
+        self.client_thread.start()
 
         self.check_log()
 
@@ -40,13 +42,28 @@ class Player:
         except FileNotFoundError:
             print(f"O arquivo do Player {other_player_id} não foi encontrado.")
 
-    def request_exchange(self, my_player_id, other_player_id, indexes_1, indexes_2):
-        res = self.manager.exchange(my_player_id, other_player_id, indexes_1, indexes_2)
-        pass
+    def request_exchange(self, indexes_1, indexes_2):
+        if self.player_id == "007":
+            other_player_id = "008"
+        else:
+            other_player_id = "007"
 
-    def exchange(self, my_indexes, other_indexes, other_list):
+        res = self.manager.exchange(self.player_id, other_player_id, indexes_1, indexes_2)
+        # if res:
+        #     objects = []
+        #     with open(f"{other_player_id}.txt", "r") as file:
+        #         objects = [line.strip() for line in file.readlines()]
+        #     #self.exchange(indexes_1, indexes_2, objects)
+
+    @Pyro5.api.expose
+    @Pyro5.api.callback
+    def exchange(self, TID, other_player_id, my_indexes, other_indexes):
         
         try:
+            other_list = []
+            with open(f"{other_player_id}.txt", "r") as file:
+                other_list = [line.strip() for line in file.readlines()]
+
             new_objects = self.list_objects
             objects_1 = [new_objects[indice] for indice in my_indexes]
             objects_2 = [other_list[indice] for indice in other_indexes]
@@ -63,10 +80,11 @@ class Player:
                 for item in new_objects:
                     f.write(str(item) + '\n')
 
-            #TODO return to manager efetivação provisória
+ 
+            return "READY"
         except:
-            #TODO return to manager falha
-            pass
+
+            return "ABORT"
 
     def save_temp_to_final(self):
         temp_file = self.player_id + "_temp.txt"
@@ -86,7 +104,17 @@ class Player:
     @Pyro5.api.expose
     @Pyro5.api.callback
     def exchange_request(self, other_player_id, indexes_1, indexes_2):
-        pass
+        other_player_objs = []
+        with open(other_player_id+".txt", "r") as file:
+            other_player_objs = [line.strip() for line in file.readlines()]            
+
+        my_objs = [self.objects[idx] for idx in indexes_2]
+        their_objs = [other_player_objs[idx] for idx in indexes_1]
+
+        print(f"Player {other_player_id} requested to exchange items {my_objs} for {their_objs}")
+        #print(f"Player {other_player_id} requested to exchange items {indexes_1} for {indexes_2}")
+        res = input("1 to accept, else to decline")
+        return res == '1'
 if __name__ == "__main__":
 
     player_id = input("Digite o seu Player ID: ")
@@ -95,7 +123,11 @@ if __name__ == "__main__":
 
     player.list_objects()
 
-    friend_id = input("Digite o ID do seu ammigo: ")
+    # friend_id = input("Digite o ID do seu ammigo: ")
 
     
-    player.list_other_player_objects(friend_id)
+    # player.list_other_player_objects(friend_id)
+
+    if player_id == "007":
+        player.list_other_player_objects("008")
+        player.request_exchange([0],[0])
