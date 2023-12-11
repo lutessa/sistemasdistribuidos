@@ -17,6 +17,7 @@ class Player:
         self.client_thread = threading.Thread(target=self.daemon.requestLoop)
         self.client_thread.start()
 
+        #TODO check log
         self.check_log()
 
     def load_objects(self):
@@ -58,13 +59,13 @@ class Player:
     @Pyro5.api.expose
     @Pyro5.api.callback
     def exchange(self, TID, other_player_id, my_indexes, other_indexes):
-        
+        #TODO write on log
         try:
             other_list = []
             with open(f"{other_player_id}.txt", "r") as file:
                 other_list = [line.strip() for line in file.readlines()]
-
-            new_objects = self.list_objects
+            print(other_list)
+            new_objects = self.objects
             objects_1 = [new_objects[indice] for indice in my_indexes]
             objects_2 = [other_list[indice] for indice in other_indexes]
 
@@ -80,11 +81,17 @@ class Player:
                 for item in new_objects:
                     f.write(str(item) + '\n')
 
- 
+         #TODO write on log
             return "READY"
-        except:
-
+        except Exception as e:
+            print(e)
+        #TODO write on log
             return "ABORT"
+
+    @Pyro5.api.expose
+    @Pyro5.api.callback
+    def complete_trans(self, TID):
+        self.save_temp_to_final()
 
     def save_temp_to_final(self):
         temp_file = self.player_id + "_temp.txt"
