@@ -4,11 +4,19 @@ import threading
 
 class Player:
     def __init__(self, player_id):
+        manager_uri = "PYRONAME:manager"
         self.player_id = player_id
         self.file_name = f"{player_id}.txt"
         self.objects = self.load_objects()
 
+        self.manager = Pyro5.api.Proxy(manager_uri)
+        self.daemon = Pyro5.api.Daemon()    
+        self.uri = self.daemon.register(self) 
+        self.ns = Pyro5.api.locate_ns()
+        self.ns.register(player_id, self.uri)
+
         self.check_log()
+
     def load_objects(self):
         try:
             with open(self.file_name, "r") as file:
@@ -19,8 +27,8 @@ class Player:
 
     def list_objects(self):
         print(f"Objetos do Player {self.player_id}:")
-        for obj in self.objects:
-            print(obj)
+        for i, obj in enumerate(self.objects):
+            print(f"{i} {obj}")
 
     def list_other_player_objects(self, other_player_id):
         try:
@@ -32,7 +40,8 @@ class Player:
         except FileNotFoundError:
             print(f"O arquivo do Player {other_player_id} não foi encontrado.")
 
-    def requisitar_trocas(self, other_player):
+    def request_exchange(self, my_player_id, other_player_id, indexes_1, indexes_2):
+        res = self.manager.exchange(my_player_id, other_player_id, indexes_1, indexes_2)
         pass
 
     def exchange(self, my_indexes, other_indexes, other_list):
@@ -58,6 +67,7 @@ class Player:
         except:
             #TODO return to manager falha
             pass
+
     def save_temp_to_final(self):
         temp_file = self.player_id + "_temp.txt"
         final_file = self.player_id + ".txt"
@@ -71,6 +81,11 @@ class Player:
     #TODO: check if theres an unfinished transaction and ask manager for result
     def check_log(self):
         log_file = self.player_id + "_log.txt"
+        pass
+
+    @Pyro5.api.expose
+    @Pyro5.api.callback
+    def exchange_request(self, other_player_id, indexes_1, indexes_2):
         pass
 if __name__ == "__main__":
 
