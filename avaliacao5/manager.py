@@ -8,12 +8,10 @@ import queue
 class Manager(object):
     def __init__(self):
 
-
         self.daemon = Pyro5.server.Daemon()
         self.uri = self.daemon.register(self)
         self.ns = Pyro5.api.locate_ns()
         self.ns.register("manager", self.uri)
-
 
         self.daemon_thread = threading.Thread(target=self.run_daemon)
         self.daemon_thread.daemon = True
@@ -39,11 +37,21 @@ class Manager(object):
 
     @Pyro5.api.expose
     def exchange(self, player1_id, player2_id, indexes_1, indexes_2):
-        print(f"Player {player1_id} requested to exchange with {player2_id} items {indexes_1} for {indexes_2}")
-        print(player1_id)
+        print(f"Player {player1_id} requested to exchange with {player2_id} items {indexes_1} for {indexes_2}\n")
+        print("player requesting trade: " + player1_id)
         if player1_id == "007":
             # res = self.players[1].exchange_request(player1_id, indexes_1, indexes_2)
             player = Pyro5.api.Proxy("PYRONAME:008")
+            res = player.exchange_request(player1_id, indexes_1, indexes_2)
+            print(res)
+            if res:
+                #self.open_trans(player1_id, player2_id, indexes_1, indexes_2)
+                self.transactions_queue.put([player1_id, player2_id, indexes_1, indexes_2])
+            player._pyroRelease
+            #return res
+        elif player1_id == "008":
+            # res = self.players[1].exchange_request(player1_id, indexes_1, indexes_2)
+            player = Pyro5.api.Proxy("PYRONAME:007")
             res = player.exchange_request(player1_id, indexes_1, indexes_2)
             print(res)
             if res:
@@ -64,7 +72,7 @@ class Manager(object):
         self.queue_thread.join()
     def open_trans(self, player_1, player_2, idx_1, idx_2):
         TID = str(uuid.uuid4())
-        print(TID)
+        print("Actual transaction: " + TID)
         self.transactions[TID] = { 'status':"Exec",
                                     player_1: "waiting",
                                     player_2: "waiting"}
@@ -102,8 +110,17 @@ class Manager(object):
         print(res2)
 
         if res1=="READY" and res2=='READY':
-            p1.complete_trans(TID)
-            p2.complete_trans(TID)
+            try:
+                p1.complete_trans(TID)
+                p2.complete_trans(TID)
+                self.transactions[TID] = { 'status':"committed",
+                                    player_1: "done",
+                                    player_2: "done"}
+            except:
+                self.transactions[TID] = { 'status':"Aborted",
+                                    player_1: "waiting",
+                                    player_2: "waiting"}
+        print(self.transactions)
             
     def run_daemon(self):
         self.daemon.requestLoop()
