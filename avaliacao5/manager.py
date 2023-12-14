@@ -8,12 +8,10 @@ import queue
 class Manager(object):
     def __init__(self):
 
-
         self.daemon = Pyro5.server.Daemon()
         self.uri = self.daemon.register(self)
         self.ns = Pyro5.api.locate_ns()
         self.ns.register("manager", self.uri)
-
 
         self.daemon_thread = threading.Thread(target=self.run_daemon)
         self.daemon_thread.daemon = True
@@ -59,8 +57,8 @@ class Manager(object):
 
     @Pyro5.api.expose
     def exchange(self, player1_id, player2_id, indexes_1, indexes_2):
-        print(f"Player {player1_id} requested to exchange with {player2_id} items {indexes_1} for {indexes_2}")
-        print(player1_id)
+        print(f"Player {player1_id} requested to exchange with {player2_id} items {indexes_1} for {indexes_2}\n")
+        print("player requesting trade: " + player1_id)
         if player1_id == "007":
             # res = self.players[1].exchange_request(player1_id, indexes_1, indexes_2)
             player = Pyro5.api.Proxy("PYRONAME:008")
