@@ -6,7 +6,6 @@ class Player:
     def __init__(self, player_id):
         manager_uri = "PYRONAME:manager"
         self.player_id = player_id
-        self.partner_id = -1
         self.file_name = f"{player_id}.txt"
         self.objects = self.load_objects()
 
@@ -29,21 +28,26 @@ class Player:
             return []
 
     def list_objects(self):
-        print(f"------ Player {self.player_id} Objects ------------")
+        print(f"Objetos do Player {self.player_id}:")
         for i, obj in enumerate(self.objects):
-            print(f"{i} - {obj}")
+            print(f"{i} {obj}")
 
     def list_other_player_objects(self, other_player_id):
         try:
             with open(f"{other_player_id}.txt", "r") as file:
                 objects = [line.strip() for line in file.readlines()]
-                print(f"----- Player {other_player_id} Objects ------------")
-                for i, obj in enumerate(objects):
-                    print(f"{i} - {obj}")
+                print(f"Objetos do Player {other_player_id}:")
+                for obj in objects:
+                    print(obj)
         except FileNotFoundError:
             print(f"O arquivo do Player {other_player_id} não foi encontrado.")
 
-    def request_exchange(self, other_player_id, indexes_1, indexes_2):
+    def request_exchange(self, indexes_1, indexes_2):
+        if self.player_id == "007":
+            other_player_id = "008"
+        else:
+            other_player_id = "007"
+
         res = self.manager.exchange(self.player_id, other_player_id, indexes_1, indexes_2)
         # if res:
         #     objects = []
@@ -85,7 +89,6 @@ class Player:
             with open(self.player_id + "_temp.txt", 'w') as f:
                 for item in new_objects:
                     f.write(str(item) + '\n')
-                f.close()
 
             log_file = self.player_id + "_log.txt"
             log = f"{TID} ready {other_player_id} {my_indexes} {other_indexes}"
@@ -109,7 +112,6 @@ class Player:
 
 
 
-    def save_temp_to_final(self, TID):
     def save_temp_to_final(self, TID):
         temp_file = self.player_id + "_temp.txt"
         final_file = self.player_id + ".txt"
@@ -155,65 +157,10 @@ class Player:
 
         res = input("1 to accept, else to decline")
         return res == '1'
-
-def display_menu(menu, player):
-    print("----------- Menu Selection -----------------")
-    for key, function in menu.items():
-        print(key, "-", function.__name__)
-
-def list_items(player):
-    player.list_objects()
-
-def set_partner(player):
-    partner_id = input("Enter partner id:\n")
-    player.partner_id = partner_id
-
-def list_partner_items(player):
-    if player.partner_id == -1:
-        print("Partner was not set!\n")
-    else:
-        player.list_other_player_objects(player.partner_id)
-
-def list_both_items(player):
-    if player.partner_id == -1:
-        print("Partner was not set!\n")
-    else:
-        player.list_objects()
-        player.list_other_player_objects(player.partner_id)
-
-def request_exchange(player):
-    if player.partner_id == -1:
-        print("Partner was not set!\n")
-    else:
-        my_item = int(input("Enter item from own list to exchange:\n"))
-        their_item = int(input("Enter item from partner's list to exchange:\n"))
-        player.request_exchange(player.partner_id, [my_item],[their_item])   
-
-def received_exchange_request(player):
-    time.sleep(3)
-
-def clear_screen(player):
-    system('clear')
-
-def done(player):
-    system('clear')  # clears stdout
-    print("Goodbye")
-    return
-
-def menu_init(player):
-    functions_names = [list_items, set_partner, list_partner_items, list_both_items, request_exchange, received_exchange_request, clear_screen, done]
-    menu_items = dict(enumerate(functions_names, start=1))
-
-    while True:
-        display_menu(menu_items, player)
-        selection = int(
-            input("Please enter your selection number: "))  # Get function key
-        selected_value = menu_items[selection]  # Gets the function name
-        selected_value(player)  # add parentheses to call the function
-
 if __name__ == "__main__":
 
     player_id = input("Digite o seu Player ID: ")
+
     player = Player(player_id)
 
     player.list_objects()
