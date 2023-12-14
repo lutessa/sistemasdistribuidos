@@ -1,7 +1,7 @@
 import Pyro5.api
 import Pyro5.socketutil
 import threading
-
+import time
 class Player:
     def __init__(self, player_id):
         manager_uri = "PYRONAME:manager"
@@ -17,7 +17,6 @@ class Player:
         self.client_thread = threading.Thread(target=self.daemon.requestLoop)
         self.client_thread.start()
 
-        #TODO check log
         self.check_log()
 
     def load_objects(self):
@@ -59,12 +58,22 @@ class Player:
     @Pyro5.api.expose
     @Pyro5.api.callback
     def exchange(self, TID, other_player_id, my_indexes, other_indexes):
-        #TODO write on log
+
         try:
+            accept = input("Type 1 to accept")
+            if int(accept) == 1:
+                pass
+            else:
+                raise ValueError("")
+
+            log_file = self.player_id + "_log.txt"
+            log = f"{TID} exec {other_player_id} {my_indexes} {other_indexes}"
+            with open(log_file, 'a') as f:
+                f.write(log + '\n')
             other_list = []
             with open(f"{other_player_id}.txt", "r") as file:
                 other_list = [line.strip() for line in file.readlines()]
-            print(other_list)
+            #print(other_list)
             new_objects = self.objects
             objects_1 = [new_objects[indice] for indice in my_indexes]
             objects_2 = [other_list[indice] for indice in other_indexes]
@@ -81,19 +90,29 @@ class Player:
                 for item in new_objects:
                     f.write(str(item) + '\n')
 
-         #TODO write on log
+            log_file = self.player_id + "_log.txt"
+            log = f"{TID} ready {other_player_id} {my_indexes} {other_indexes}"
+            with open(log_file, 'a') as f:
+                f.write(log + '\n')
             return "READY"
         except Exception as e:
             print(e)
-        #TODO write on log
+
+            log_file = self.player_id + "_log.txt"
+            log = f"{TID} failed {other_player_id} {my_indexes} {other_indexes}"
+            with open(log_file, 'a') as f:
+                f.write(log + '\n')
+
             return "ABORT"
 
     @Pyro5.api.expose
     @Pyro5.api.callback
     def complete_trans(self, TID):
-        self.save_temp_to_final()
+        self.save_temp_to_final(TID)
 
-    def save_temp_to_final(self):
+
+
+    def save_temp_to_final(self, TID):
         temp_file = self.player_id + "_temp.txt"
         final_file = self.player_id + ".txt"
         with open(temp_file, 'r') as temp:
@@ -101,25 +120,41 @@ class Player:
 
         with open(final_file, 'w') as final:
             final.write(data)
-        #TODO write on log
 
-    #TODO: check if theres an unfinished transaction and ask manager for result
+        log_file = self.player_id + "_log.txt"
+        log = f"{TID} completed"
+        with open(log_file, 'a') as f:
+            f.write(log + '\n')
+        print(log)
+        print(data)
+
     def check_log(self):
         log_file = self.player_id + "_log.txt"
-        pass
+        with open(log_file, 'r') as f:
+            l = f.readlines()
+            if l:
+                last_line = l[-1].strip().split()
 
+                if len(last_line)>=2:
+                    id = last_line[0]
+                    status = last_line[1]
+
+                    if status != "completed":
+                        res = self.manager.get_Decision(id)
+                        if res == "COMPLETED":
+                            self.save_temp_to_final(id)
     @Pyro5.api.expose
     @Pyro5.api.callback
     def exchange_request(self, other_player_id, indexes_1, indexes_2):
         other_player_objs = []
         with open(other_player_id+".txt", "r") as file:
             other_player_objs = [line.strip() for line in file.readlines()]            
-
+    
         my_objs = [self.objects[idx] for idx in indexes_2]
         their_objs = [other_player_objs[idx] for idx in indexes_1]
 
         print(f"Player {other_player_id} requested to exchange items {my_objs} for {their_objs}")
-        #print(f"Player {other_player_id} requested to exchange items {indexes_1} for {indexes_2}")
+
         res = input("1 to accept, else to decline")
         return res == '1'
 if __name__ == "__main__":
@@ -130,11 +165,15 @@ if __name__ == "__main__":
 
     player.list_objects()
 
-    # friend_id = input("Digite o ID do seu ammigo: ")
-
-    
-    # player.list_other_player_objects(friend_id)
-
     if player_id == "007":
-        player.list_other_player_objects("008")
-        player.request_exchange([0],[0])
+        while True:
+            player.list_other_player_objects("008")
+            items_to_give = input("Type items to give: ").split(',')
+            items_to_receive = input("Type items to receive: ").split(',')
+
+
+            indexes_to_give = [int(index) for index in items_to_give]
+            indexes_to_receive = [int(index) for index in items_to_receive]
+
+            player.request_exchange(indexes_to_give, indexes_to_receive)
+            time.sleep(60)
